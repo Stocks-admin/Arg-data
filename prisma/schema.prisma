@@ -1,0 +1,86 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tna {
+  id    Int      @id @default(autoincrement())
+  date  DateTime @unique @default(now()) @db.Date
+  value Float
+}
+
+model Uva {
+  id    Int      @id @default(autoincrement())
+  date  DateTime @unique @default(now()) @db.Date
+  value Float
+}
+
+model Item {
+  id    Int       @id @default(autoincrement())
+  type  ItemTypes
+  date  DateTime  @db.Date
+  value Float
+
+  stock_symbol    String?
+  Organization    Organization? @relation(fields: [stock_symbol], references: [symbol])
+  currency_symbol String?
+  Currency        Currency?     @relation(fields: [currency_symbol], references: [symbol])
+  bond_symbol     String?
+  Bond            Bond?         @relation(fields: [bond_symbol], references: [symbol])
+}
+
+enum ItemTypes {
+  Stock
+  Currency
+  Bond
+}
+
+model Organization {
+  symbol       String        @id
+  name         String?
+  logo         String?
+  market       Market?
+  org_category Org_category?
+  items        Item[]
+}
+
+model Currency {
+  symbol  String @id
+  name    String
+  country String
+
+  Items Item[]
+}
+
+model Bond {
+  symbol  String @id
+  country String
+  items   Item[]
+}
+
+enum Market {
+  NYSE
+  NASDAQ
+  BCS
+  BYMA
+}
+
+enum Org_category {
+  Metalurgica
+  Tecnologica
+}
+
+model iol_token {
+  token_id      Int      @id @default(autoincrement())
+  access_token  String
+  refresh_token String
+  created_at    DateTime @default(now())
+  expires_at    DateTime
+}
