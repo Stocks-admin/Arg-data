@@ -9,6 +9,7 @@ import {
 import metrics from "./routes/metricsRoutes.js";
 import dollar from "./routes/dollarRoutes.js";
 import stocks from "./routes/stockRoutes.js";
+import { PrismaClient } from "@prisma/client";
 
 const app = express();
 
@@ -36,6 +37,17 @@ app.get("/", (req, res) => {
   res.send("Hello, world!");
 });
 
+app.get("/test-db", async (req, res) => {
+  const prisma = new PrismaClient();
+  prisma.$queryRaw`SELECT 1 + 1 AS result;`
+    .then((data) => {
+      res.send(data);
+    })
+    .catch((e) => {
+      res.status(500).send(e.toString());
+    });
+});
+
 app.get("/fetch-last-values", async (req, res) => {
   const resp = await Promise.all([fetchLastDolarValue(), fetchLastUvaValue()]);
   if (resp[0] && resp[1]) {
@@ -60,6 +72,6 @@ app.use("/stocks", stocks);
 app.use("/dollar", dollar);
 
 // Start the server
-app.listen(3005, () => {
+app.listen(process.env.PORT || process.env.SERVER_PORT || 3005, () => {
   console.log("Server started on port 3005");
 });
