@@ -15,14 +15,16 @@ export async function getLastDollarValue() {
       date: "desc",
     },
   });
-  console.log("Last", dollarValue);
   if (!dollarValue) {
     throw new Error("No dollar value found");
   }
 
   if (!isToday(dollarValue.date)) {
-    dollarValue = await fetchLastDolarValue();
-    console.log("Today", dollarValue);
+    fetchLastDolarValue().then((data) => {
+      if (data) {
+        dollarValue = data;
+      }
+    });
   }
 
   if (!dollarValue) {
