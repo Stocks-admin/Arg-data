@@ -5,32 +5,29 @@ import {
   fetchLastUvaValue,
   generateMockDollars,
   generateMockMeli,
+  loadAllSymbols,
 } from "./controllers/infoController.js";
 import metrics from "./routes/metricsRoutes.js";
 import dollar from "./routes/dollarRoutes.js";
 import stocks from "./routes/stockRoutes.js";
 import { PrismaClient } from "@prisma/client";
+import cors from "cors";
 
 const app = express();
 
-app.use((req, res, next) => {
-  res.setHeader(
-    "Access-Control-Allow-Origin",
-    "https://api.butterstocks.site/"
-  );
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PATCH, PUT, DELETE, OPTIONS"
-  );
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, Origin"
-  );
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
-  next();
-});
+const corsOptions = {
+  origin: [
+    "https://development.d2jiei2auzx96a.amplifyapp.com",
+    "https://production.d2jiei2auzx96a.amplifyapp.com",
+    "http://localhost:3000",
+    "http://localhost:3001",
+  ],
+  optionsSuccessStatus: 200,
+  methods: ["GET", "PUT", "POST", "DELETE", "OPTIONS"],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -67,6 +64,20 @@ app.get("/generate-mock-dollars", async (req, res) => {
     res.send("Mock dollars generated successfully");
   } else {
     res.status(500).send("Error generating mock dollars");
+  }
+});
+
+app.get("/generate-symbols", async (req, res) => {
+  const { market, instrumento } = req.query;
+  try {
+    const resp = await loadAllSymbols(market, instrumento);
+    if (resp) {
+      res.send("Mock meli generated successfully");
+    } else {
+      res.status(500).send("Error generating mock meli");
+    }
+  } catch (error) {
+    res.status(500).send(error.message);
   }
 });
 

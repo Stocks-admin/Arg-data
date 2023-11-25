@@ -173,3 +173,58 @@ export async function generateMockMeli() {
   }
   return true;
 }
+
+export async function loadAllSymbols(
+  country = "estados_unidos",
+  instrumento = "acciones"
+) {
+  // const market = country === "estados_unidos" ? "NASDAQ" : "BCBA";
+  // const market = "CEDEARS";
+
+  try {
+    const symbols = await axios.get(
+      `https://api.invertironline.com/api/v2/Cotizaciones/${instrumento}/${country}/Todos`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6ImF0K2p3dCJ9.eyJzdWIiOiIxNzEyMjMzIiwiSUQiOiIxNzEyMjMzIiwianRpIjoiNjRiMTY0NjktNmMzNC00ZWQ2LTkwYzItNGQ2NTg3ZjI0MGE1IiwiY29uc3VtZXJfdHlwZSI6IjEiLCJ0aWVuZV9jdWVudGEiOiJUcnVlIiwidGllbmVfcHJvZHVjdG9fYnVyc2F0aWwiOiJUcnVlIiwidGllbmVfcHJvZHVjdG9fYXBpIjoiVHJ1ZSIsInRpZW5lX1R5QyI6IlRydWUiLCJuYmYiOjE3MDA2MjEyNjAsImV4cCI6MTcwMDYyMjE2MCwiaWF0IjoxNzAwNjIxMjYwLCJpc3MiOiJJT0xPYXV0aFNlcnZlciIsImF1ZCI6IklPTE9hdXRoU2VydmVyIn0.lZ9Hq1uiRjExVfUoRkLyTd662XFQzTlhH-JUTBVi-TEDRrYXF4V3hkC3mLKL4uclyyRGw8Z8v8tb0BdhaPHmywnn1DC0_1QFm9GL5OmttAR7NYLg1yvZy18CN6IzAdSHQijGs5yiTpsfIoRAylRdm7y2vg6hJW014Cu0AxjIlLD1d8c_vB8snTkSNuty8j2TGg-80swl702KMs3MNR2Wu_qg5ldjvQBTlr4utcmZ4piCF6yCSIQkkn27tHz1rVqKvynw8xnp30oUWowgiha2jmrMkAKK-_stAQ_QpY8q6jMQX8LOy2pqWTNFRLjnsLPh6gQt06YDgpmWLoxUQG0nLg`,
+        },
+      }
+    );
+
+    const parsedSymbols = symbols.data.titulos.map((symbol) => {
+      return {
+        symbol: symbol.simbolo,
+        country: "Argentina",
+        // name: symbol.descripcion,
+        // market: market,
+      };
+    });
+
+    const organizations = await prisma.bond.createMany({
+      data: parsedSymbols,
+      skipDuplicates: true,
+    });
+
+    if (organizations) {
+      const parsedItems = symbols.data.titulos.map((symbol) => {
+        return {
+          bond_symbol: symbol.simbolo,
+          type: "Bond",
+          date: new Date(),
+          value: symbol.ultimoPrecio,
+          // market: market,
+        };
+      });
+      return await prisma.item.createMany({
+        data: parsedItems,
+        skipDuplicates: true,
+      });
+    } else {
+      throw new Error("Error loading symbols");
+    }
+  } catch (error) {
+    console.log(error);
+    throw new Error("Error loading symbols");
+  }
+}

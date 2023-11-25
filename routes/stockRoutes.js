@@ -2,6 +2,7 @@ import express from "express";
 import moment from "moment";
 import {
   getLastStockValue,
+  getRandomStocks,
   getStockValueOnDate,
   getStockValueOnDateRange,
   getSymbolInfo,
@@ -14,11 +15,9 @@ stocks.get("/search", async (req, res) => {
   try {
     const { query } = req.query;
     if (!query) {
-      console.log("No query provided");
       res.status(200).send([]);
     }
     const stocks = await searchItem(query);
-    console.log(stocks);
     if (!stocks) {
       res.status(200).send([]);
     }
@@ -26,22 +25,6 @@ stocks.get("/search", async (req, res) => {
   } catch (error) {
     console.log(error);
     res.status(200).send([]);
-  }
-});
-
-stocks.get("/:symbol", async (req, res) => {
-  try {
-    const { symbol } = req.params;
-    if (!symbol) {
-      throw new Error("No symbol provided");
-    }
-    const stock = await getSymbolInfo(symbol);
-    if (!stock) {
-      throw new Error("No stock found");
-    }
-    res.status(200).json(stock);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
   }
 });
 
@@ -110,6 +93,37 @@ stocks.get("/stock-on-date-range/:symbol", async (req, res) => {
     const stock = await getStockValueOnDateRange(symbol, dateStart, dateEnd);
     if (!stock) {
       throw new Error("No stock value found");
+    }
+    res.status(200).json(stock);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+stocks.get("/random-stocks", async (req, res) => {
+  try {
+    const { limit } = req.query;
+    const stocks = await getRandomStocks(limit);
+    console.log(stocks);
+    if (!stocks) {
+      throw new Error("No stocks found");
+    }
+    res.status(200).json(stocks);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+stocks.get("/:symbol", async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    if (!symbol) {
+      throw new Error("No symbol provided");
+    }
+    const stock = await getSymbolInfo(symbol);
+    if (!stock) {
+      throw new Error("No stock found");
     }
     res.status(200).json(stock);
   } catch (error) {

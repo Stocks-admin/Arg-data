@@ -14,9 +14,8 @@ const cache = middleware;
 dollar.get("/current-dollar", async (req, res) => {
   try {
     const dollar = await getLastDollarValue();
-    console.log("dollar", dollar);
     if (!dollar) {
-      res.status(404).json({ message: "No dollar value found" });
+      res.status(500).json({ message: "No dollar value found" });
     }
     res.status(200).json(dollar);
   } catch (error) {
