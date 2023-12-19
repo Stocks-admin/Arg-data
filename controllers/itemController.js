@@ -55,6 +55,7 @@ export async function searchItem(query) {
       bond_symbol: true,
       currency_symbol: true,
       type: true,
+      market: true,
       Organization: {
         select: {
           name: true,
@@ -70,6 +71,9 @@ export async function searchItem(query) {
     },
     distinct: ["stock_symbol", "bond_symbol", "currency_symbol"],
     take: 10,
+    orderBy: {
+      type: "desc",
+    },
   });
   return items.map((item) => {
     return {
@@ -77,7 +81,7 @@ export async function searchItem(query) {
       full_name: item?.Organization?.name || item?.Currency?.name,
       logo: item?.Organization?.logo,
       type: item.type,
-      market: item?.Organization?.market,
+      market: item.market,
     };
   });
 }

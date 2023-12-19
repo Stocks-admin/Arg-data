@@ -169,3 +169,21 @@ export async function getOrgInfo(symbol) {
     },
   });
 }
+
+export async function getRandomStocks(limit = 10) {
+  try {
+    const ids = Array.from({ length: limit }, () =>
+      Math.floor(Math.random() * 1000)
+    );
+    return await prisma.item.findMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    throw new Error(error);
+  }
+}

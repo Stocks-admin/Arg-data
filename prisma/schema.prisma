@@ -69,8 +69,8 @@ model Bond {
 enum Market {
   NYSE
   NASDAQ
-  BCBA
   CEDEARS
+  BCBA
 }
 
 enum Org_category {

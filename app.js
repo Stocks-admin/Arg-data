@@ -5,6 +5,7 @@ import {
   fetchLastUvaValue,
   generateMockDollars,
   generateMockMeli,
+  loadAllSymbols,
 } from "./controllers/infoController.js";
 import metrics from "./routes/metricsRoutes.js";
 import dollar from "./routes/dollarRoutes.js";
@@ -15,7 +16,12 @@ import cors from "cors";
 const app = express();
 
 const corsOptions = {
-  origin: ["https://api.butterstocks.site", "http://localhost:3000"],
+  origin: [
+    "https://development.d2jiei2auzx96a.amplifyapp.com",
+    "https://production.d2jiei2auzx96a.amplifyapp.com",
+    "http://localhost:3000",
+    "http://localhost:3001",
+  ],
   optionsSuccessStatus: 200,
   methods: ["GET", "PUT", "POST", "DELETE", "OPTIONS"],
   credentials: true,
@@ -58,6 +64,20 @@ app.get("/generate-mock-dollars", async (req, res) => {
     res.send("Mock dollars generated successfully");
   } else {
     res.status(500).send("Error generating mock dollars");
+  }
+});
+
+app.get("/generate-symbols", async (req, res) => {
+  const { market, instrumento } = req.query;
+  try {
+    const resp = await loadAllSymbols(market, instrumento);
+    if (resp) {
+      res.send("Mock meli generated successfully");
+    } else {
+      res.status(500).send("Error generating mock meli");
+    }
+  } catch (error) {
+    res.status(500).send(error.message);
   }
 });
 
