@@ -18,13 +18,11 @@ stocks.get("/search", async (req, res) => {
       res.status(200).send([]);
     }
     const stocks = await searchItem(query);
-    console.log(stocks);
     if (!stocks) {
       res.status(200).send([]);
     }
     res.status(200).json(stocks);
   } catch (error) {
-    console.log(error);
     res.status(200).send([]);
   }
 });
@@ -66,7 +64,7 @@ stocks.get("/current-value/:symbol", async (req, res) => {
 stocks.get("/stock-on-date/:symbol", async (req, res) => {
   try {
     const { symbol } = req.params;
-    const { date } = req.query;
+    const { date, market } = req.query;
     if (!symbol) {
       throw new Error("No symbol provided");
     }
@@ -80,7 +78,7 @@ stocks.get("/stock-on-date/:symbol", async (req, res) => {
     ) {
       throw new Error("Invalid date");
     }
-    const stock = await getStockValueOnDate(symbol, date);
+    const stock = await getStockValueOnDate(symbol, market, date);
     if (!stock) {
       throw new Error("No stock value found");
     }

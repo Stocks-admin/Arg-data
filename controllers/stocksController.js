@@ -1,13 +1,16 @@
 //Import prisma client
 import { PrismaClient } from "@prisma/client";
-import { fetchLastStockValue } from "./infoController.js";
+import {
+  fetchLastStockValue,
+  fetchSymbolValueOnDate,
+} from "./infoController.js";
 import { isToday } from "../helpers/dateHelpers.js";
 import moment from "moment";
 
 //Instantiate prisma client
 const prisma = new PrismaClient();
 
-export async function getLastStockValue(symbol) {
+export async function getLastStockValue(symbol, market = "nASDAQ") {
   let lastStock = await prisma.item.findFirst({
     where: {
       stock_symbol: symbol,
@@ -52,7 +55,7 @@ export async function getLastStockValue(symbol) {
     date: lastStock?.date,
   };
   if (!isToday(lastStock.date)) {
-    dollarValue = await fetchLastStockValue(symbol);
+    dollarValue = await fetchLastStockValue(symbol, market);
     if (!dollarValue) {
       throw new Error("No dollar value found");
     }
@@ -61,13 +64,55 @@ export async function getLastStockValue(symbol) {
   return { value, date, organization: lastStock.Organization };
 }
 
-export async function getStockValueOnDate(symbol, date) {
-  return await prisma.item.findFirst({
+export async function getStockValueOnDate(symbol, market = "NASDAQ", date) {
+  const stockMarket =
+    market.toUpperCase() === "CEDEARS" ? "BCBA" : market.toUpperCase();
+  let symbolValue = await prisma.item.findFirst({
     where: {
       stock_symbol: symbol,
-      date: moment(date, "DD-MM-YYYY").toDate(),
+      market: stockMarket.toUpperCase(),
+      date: moment(date, "YYYY-MM-DD").toDate(),
     },
   });
+  if (!symbolValue) {
+    try {
+      const symbolOnDate = await fetchSymbolValueOnDate(
+        symbol,
+        stockMarket,
+        date
+      );
+
+      if (!symbolOnDate) {
+        throw new Error("No value found");
+      }
+      symbolValue = await prisma.item.create({
+        data: {
+          value: symbolOnDate.value,
+          date: moment(date, "YYYY-MM-DD").toDate(),
+          type: "Stock",
+          market: stockMarket,
+          Organization: {
+            connectOrCreate: {
+              where: {
+                symbol,
+              },
+              create: {
+                symbol,
+              },
+            },
+          },
+        },
+      });
+      symbolValue = {
+        value: symbolValue.value,
+        date: symbolValue.date,
+      };
+    } catch (error) {
+      console.log(error);
+      throw new Error("No value found");
+    }
+  }
+  return symbolValue;
 }
 
 export async function getStockValueOnDateRange(symbol, dateStart, dateEnd) {

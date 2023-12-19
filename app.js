@@ -10,27 +10,18 @@ import metrics from "./routes/metricsRoutes.js";
 import dollar from "./routes/dollarRoutes.js";
 import stocks from "./routes/stockRoutes.js";
 import { PrismaClient } from "@prisma/client";
+import cors from "cors";
 
 const app = express();
 
-app.use((req, res, next) => {
-  res.setHeader(
-    "Access-Control-Allow-Origin",
-    "https://api.butterstocks.site/"
-  );
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PATCH, PUT, DELETE, OPTIONS"
-  );
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, Origin"
-  );
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
-  next();
-});
+const corsOptions = {
+  origin: ["https://api.butterstocks.site", "http://localhost:3000"],
+  optionsSuccessStatus: 200,
+  methods: ["GET", "PUT", "POST", "DELETE", "OPTIONS"],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));

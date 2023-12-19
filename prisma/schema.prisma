@@ -23,10 +23,11 @@ model Uva {
 }
 
 model Item {
-  id    Int       @id @default(autoincrement())
-  type  ItemTypes
-  date  DateTime  @db.Date
-  value Float
+  id     Int       @id @default(autoincrement())
+  type   ItemTypes
+  date   DateTime  @db.Date
+  value  Float
+  market Market?
 
   stock_symbol    String?
   Organization    Organization? @relation(fields: [stock_symbol], references: [symbol])
@@ -68,8 +69,8 @@ model Bond {
 enum Market {
   NYSE
   NASDAQ
-  BCS
-  BYMA
+  BCBA
+  CEDEARS
 }
 
 enum Org_category {

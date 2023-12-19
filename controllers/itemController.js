@@ -59,6 +59,7 @@ export async function searchItem(query) {
         select: {
           name: true,
           logo: true,
+          market: true,
         },
       },
       Currency: {
@@ -76,6 +77,7 @@ export async function searchItem(query) {
       full_name: item?.Organization?.name || item?.Currency?.name,
       logo: item?.Organization?.logo,
       type: item.type,
+      market: item?.Organization?.market,
     };
   });
 }
