@@ -26,8 +26,8 @@ model Item {
   id     Int       @id @default(autoincrement())
   type   ItemTypes
   date   DateTime  @db.Date
-  value  Float
   market Market?
+  value  Float
 
   stock_symbol    String?
   Organization    Organization? @relation(fields: [stock_symbol], references: [symbol])
