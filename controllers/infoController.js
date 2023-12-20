@@ -1,7 +1,11 @@
 import axios from "axios";
 import { PrismaClient } from "@prisma/client";
-import { fetchSymbolPriceIOL } from "../helpers/iolHelper.js";
+import {
+  fetchSymbolPriceIOL,
+  fetchSymbolPriceIOLOnDate,
+} from "../helpers/iolHelper.js";
 import moment from "moment-timezone";
+import { parseMarket } from "../utils/markets.js";
 
 //Instantiate prisma client
 const prisma = new PrismaClient();
@@ -77,8 +81,8 @@ export async function fetchLastUvaValue() {
 
 export function fetchLastTnaValue() {}
 
-export async function fetchLastStockValue(symbol) {
-  const resp = await fetchSymbolPriceIOL(symbol);
+export async function fetchLastStockValue(symbol, market = "nASDAQ") {
+  const resp = await fetchSymbolPriceIOL(symbol, market);
   if (resp.price) {
     const isStockLoaded = await prisma.item.findFirst({
       where: {
@@ -118,6 +122,56 @@ export async function fetchLastStockValue(symbol) {
     }
     if ((newStock?.count && newStock.count > 0) || newStock?.date) {
       return { value: resp.price, date: new Date() };
+    } else {
+      throw new Error("Error fetching stock value");
+    }
+  } else {
+    throw new Error("Error fetching stock value");
+  }
+}
+
+export async function fetchSymbolValueOnDate(symbol, market = "nASDAQ", date) {
+  const resp = await fetchSymbolPriceIOLOnDate(symbol, market, date);
+  console.log(resp);
+  if (resp?.price) {
+    const isStockLoaded = await prisma.item.findFirst({
+      where: {
+        stock_symbol: symbol,
+        date: moment(date, "YYYY-MM-DD").toDate(),
+      },
+    });
+    let newStock;
+    if (!isStockLoaded) {
+      newStock = await prisma.item.create({
+        data: {
+          value: resp?.price,
+          date: date,
+          type: "Stock",
+          Organization: {
+            connectOrCreate: {
+              where: {
+                symbol,
+              },
+              create: {
+                symbol,
+              },
+            },
+          },
+        },
+      });
+    } else {
+      newStock = await prisma.item.updateMany({
+        where: {
+          stock_symbol: symbol,
+          date: moment(date, "YYYY-MM-DD").toDate(),
+        },
+        data: {
+          value: resp.price,
+        },
+      });
+    }
+    if ((newStock?.count && newStock.count > 0) || newStock?.date) {
+      return { value: resp.price, date };
     } else {
       throw new Error("Error fetching stock value");
     }

@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import axios from "axios";
 import moment from "moment";
+import { parseMarket } from "../utils/markets.js";
 
 const db = new PrismaClient();
 
@@ -90,8 +91,10 @@ export const fetchSymbolPriceIOL = async (symbol, mercado = "nASDAQ") => {
     if (moment().isAfter(moment(expires_at)))
       access_token = (await loginToIOL()).access_token;
 
+    const symbolMarket = parseMarket[mercado.toUpperCase()] || "nASDAQ";
+
     const resp = await axios.get(
-      `https://api.invertironline.com/api/v2/${mercado}/Titulos/${symbol}/Cotizacion`,
+      `https://api.invertironline.com/api/v2/${symbolMarket}/Titulos/${symbol}/Cotizacion`,
       {
         headers: {
           Authorization: `bearer ${access_token}`,
@@ -101,6 +104,139 @@ export const fetchSymbolPriceIOL = async (symbol, mercado = "nASDAQ") => {
 
     return { price: resp?.data?.ultimoPrecio || 0 };
   } catch (error) {
+    console.log(error);
     throw new Error(error);
   }
 };
+
+export async function fetchSymbolPriceIOLOnDate(
+  symbol,
+  market = "nASDAQ",
+  date
+) {
+  const symbolMarket = parseMarket[market.toUpperCase()] || "nASDAQ";
+  try {
+    let access_token, expires_at;
+    const currentToken = await db.iol_token.findUnique({
+      where: {
+        token_id: 1,
+      },
+    });
+
+    if (!currentToken?.access_token || !currentToken?.expires_at) {
+      const data = await loginToIOL();
+      access_token = data.access_token;
+      expires_at = data.expires_at;
+    } else {
+      access_token = currentToken.access_token;
+      expires_at = currentToken.expires_at;
+    }
+
+    if (moment().isAfter(moment(expires_at)))
+      access_token = (await loginToIOL()).access_token;
+
+    console.log("date", date);
+
+    const resp = await axios.get(
+      `https://api.invertironline.com/api/v2/${symbolMarket}/Titulos/${symbol}/Cotizacion/seriehistorica/${moment(
+        date
+      ).format("YYYY-MM-DD")}/${moment(date)
+        .add(1, "day")
+        .format("YYYY-MM-DD")}/sinAjustar`,
+      {
+        headers: {
+          Authorization: `bearer ${access_token}`,
+        },
+      }
+    );
+    console.log(resp.data);
+    if (resp.data.length > 0 && resp.data[0].ultimoPrecio) {
+      await db.item.create({
+        data: {
+          value: resp.data[0].ultimoPrecio || 0,
+          date: new Date(date),
+          type: "Stock",
+          market: market.toUpperCase(),
+          Organization: {
+            connectOrCreate: {
+              where: {
+                symbol,
+              },
+              create: {
+                symbol,
+              },
+            },
+          },
+        },
+      });
+      return { price: resp.data[0].ultimoPrecio || 0 };
+    } else {
+      throw new Error("No se encontró precio");
+    }
+  } catch (error) {
+    console.log(error);
+    throw new Error(error);
+  }
+}
+
+export async function fetchSymbolPriceIOLOnDateRange(
+  symbol,
+  market = "nASDAQ",
+  dateStart,
+  dateEnd
+) {
+  try {
+    let access_token, expires_at;
+    const currentToken = await db.iol_token.findUnique({
+      where: {
+        token_id: 1,
+      },
+    });
+
+    if (!currentToken?.access_token || !currentToken?.expires_at) {
+      const data = await loginToIOL();
+      access_token = data.access_token;
+      expires_at = data.expires_at;
+    } else {
+      access_token = currentToken.access_token;
+      expires_at = currentToken.expires_at;
+    }
+
+    if (moment().isAfter(moment(expires_at)))
+      access_token = (await loginToIOL()).access_token;
+
+    const resp = await axios.get(
+      `https://api.invertironline.com/api/v2/${market}/Titulos/${symbol}/Cotizacion/seriehistorica/${moment(
+        dateStart
+      ).format("YYYY-MM-DD")}/${moment(dateEnd).format("YYYY-MM-DD")}`,
+      {
+        headers: {
+          Authorization: `bearer ${access_token}`,
+        },
+      }
+    );
+    if (resp.data.length > 0) {
+      const data = resp.data.map((item) => ({
+        value: item.ultimoPrecio || 0,
+        date: new Date(item.fecha),
+        type: "Stock",
+        Organization: {
+          connectOrCreate: {
+            where: {
+              symbol,
+            },
+            create: {
+              symbol,
+            },
+          },
+        },
+      }));
+      await db.item.createMany({
+        data,
+      });
+      return data;
+    }
+  } catch (error) {
+    throw new Error(error);
+  }
+}

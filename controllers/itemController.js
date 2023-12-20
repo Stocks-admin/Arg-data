@@ -60,6 +60,7 @@ export async function searchItem(query) {
         select: {
           name: true,
           logo: true,
+          market: true,
         },
       },
       Currency: {
