@@ -1,6 +1,7 @@
 import express from "express";
 import moment from "moment";
 import {
+  filterStocks,
   getLastStockValue,
   getRandomStocks,
   getStockValueOnDate,
@@ -125,6 +126,25 @@ stocks.get("/:symbol", async (req, res) => {
       throw new Error("No stock found");
     }
     res.status(200).json(stock);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+stocks.post("/verifyStocks", async (req, res) => {
+  try {
+    const { symbols } = req.body;
+    if (!symbols || !Array.isArray(symbols) || symbols.length === 0) {
+      throw new Error("No stocks found");
+    }
+    const itemsEncountered = await filterStocks(symbols);
+    const symbolsEncountered = itemsEncountered.map(
+      (item) => item.stock_symbol
+    );
+    const filteredSymbols = symbols.filter((symbol) =>
+      symbolsEncountered.includes(symbol)
+    );
+    res.status(200).json([...new Set(filteredSymbols)]);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

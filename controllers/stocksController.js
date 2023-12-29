@@ -187,3 +187,22 @@ export async function getRandomStocks(limit = 10) {
     throw new Error(error);
   }
 }
+
+export async function filterStocks(symbols) {
+  try {
+    const filteredSymbols = [...new Set(symbols)].filter(
+      (symbol) => typeof symbol === "string"
+    );
+    console.log(filteredSymbols);
+    return await prisma.item.findMany({
+      where: {
+        stock_symbol: {
+          in: filteredSymbols,
+        },
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    throw new Error(error);
+  }
+}

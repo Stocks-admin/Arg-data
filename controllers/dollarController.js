@@ -20,18 +20,22 @@ export async function getLastDollarValue() {
   }
 
   if (!isToday(dollarValue.date)) {
-    fetchLastDolarValue().then((data) => {
-      if (data) {
-        dollarValue = data;
-      }
-    });
+    fetchLastDolarValue()
+      .then((data) => {
+        if (data) {
+          dollarValue = data;
+          const { value, date } = dollarValue;
+          return { value, date };
+        }
+      })
+      .catch(() => {
+        const { value, date } = dollarValue;
+        return { value, date };
+      });
+  } else {
+    const { value, date } = dollarValue;
+    return { value, date };
   }
-
-  if (!dollarValue) {
-    throw new Error("No dollar value found");
-  }
-  const { value, date } = dollarValue;
-  return { value, date };
 }
 
 export function getDollarValueOnDate(date) {
