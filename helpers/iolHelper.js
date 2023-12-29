@@ -111,6 +111,7 @@ export const fetchSymbolPriceIOL = async (symbol, mercado = "nASDAQ") => {
       throw new Error("No se encontró precio");
     }
   } catch (error) {
+    console.log(error);
     throw new Error(error);
   }
 };
