@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import axios from "axios";
 import moment from "moment";
 import { parseMarket } from "../utils/markets.js";
+import { getLastDollarValue } from "../controllers/dollarController.js";
 
 const db = new PrismaClient();
 
@@ -101,8 +102,14 @@ export const fetchSymbolPriceIOL = async (symbol, mercado = "nASDAQ") => {
         },
       }
     );
-
-    return { price: resp?.data?.ultimoPrecio || 0 };
+    if (resp?.data?.moneda === "peso_argentino" && resp?.data?.ultimoPrecio) {
+      const { value: dollar } = await getLastDollarValue();
+      return { price: resp?.data?.ultimoPrecio / dollar };
+    } else if (resp?.data?.ultimoPrecio) {
+      return { price: resp?.data?.ultimoPrecio };
+    } else {
+      throw new Error("No se encontró precio");
+    }
   } catch (error) {
     console.log(error);
     throw new Error(error);

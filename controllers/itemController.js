@@ -75,13 +75,11 @@ export async function searchItem(query) {
       type: "desc",
     },
   });
-  return items.map((item) => {
-    return {
-      symbol: item.stock_symbol || item.bond_symbol || item.currency_symbol,
-      full_name: item?.Organization?.name || item?.Currency?.name,
-      logo: item?.Organization?.logo,
-      type: item.type,
-      market: item.market,
-    };
-  });
+  return items.map((item) => ({
+    symbol: item.stock_symbol || item.bond_symbol || item.currency_symbol,
+    full_name: item?.Organization?.name || item?.Currency?.name,
+    logo: item?.Organization?.logo,
+    type: item.type,
+    market: item.market,
+  }));
 }
