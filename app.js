@@ -81,6 +81,20 @@ app.get("/generate-symbols", async (req, res) => {
   }
 });
 
+app.post("/update-prices", async (req, res) => {
+  console.log(req.body);
+  console.log(req.headers);
+  console.log("Updating prices");
+  const prisma = new PrismaClient();
+  const resp = await prisma.bond.create({
+    data: {
+      symbol: "TEST",
+      country: "TEST",
+    },
+  });
+  res.send(req.headers);
+});
+
 app.use("/metrics", metrics);
 app.use("/stocks", stocks);
 app.use("/dollar", dollar);
