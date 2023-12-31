@@ -5,7 +5,6 @@ import {
   fetchSymbolPriceIOLOnDate,
 } from "../helpers/iolHelper.js";
 import moment from "moment-timezone";
-import { parseMarket } from "../utils/markets.js";
 import { getLastDollarValue } from "./dollarController.js";
 
 //Instantiate prisma client
@@ -16,7 +15,7 @@ export async function fetchLastDolarValue() {
   if (dollar.status === 200 && dollar?.data?.venta) {
     const isDollarLoaded = await prisma.item.findFirst({
       where: {
-        date: moment.tz("America/Argentina/Buenos_Aires").toDate(),
+        date: moment().toDate(),
         currency_symbol: "USD",
       },
     });
@@ -25,7 +24,7 @@ export async function fetchLastDolarValue() {
       newDollar = await prisma.item.create({
         data: {
           value: dollar.data.venta,
-          date: moment.tz("America/Argentina/Buenos_Aires").toDate(),
+          date: moment().toDate(),
           type: "Currency",
           Currency: {
             connect: {
@@ -37,7 +36,7 @@ export async function fetchLastDolarValue() {
     } else {
       newDollar = await prisma.item.updateMany({
         where: {
-          date: moment.tz("America/Argentina/Buenos_Aires").toDate(),
+          date: moment().toDate(),
           currency_symbol: "USD",
         },
         data: {
@@ -51,7 +50,7 @@ export async function fetchLastDolarValue() {
     } else if (newDollar?.count && newDollar.count > 0) {
       return {
         value: dollar.data.venta || 0,
-        date: moment.tz("America/Argentina/Buenos_Aires").toDate(),
+        date: moment().toDate(),
       };
     } else {
       throw new Error("Error fetching dollar value");

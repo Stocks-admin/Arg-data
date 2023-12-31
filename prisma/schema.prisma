@@ -25,7 +25,7 @@ model Uva {
 model Item {
   id     Int       @id @default(autoincrement())
   type   ItemTypes
-  date   DateTime  @db.Date
+  date   DateTime
   market Market?
   value  Float
 

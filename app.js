@@ -92,7 +92,7 @@ app.post("/update-prices", async (req, res) => {
       country: "TEST",
     },
   });
-  res.send(req.headers);
+  res.send("OK");
 });
 
 app.use("/metrics", metrics);

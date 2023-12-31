@@ -15,40 +15,51 @@ export async function getLastDollarValue() {
       date: "desc",
     },
   });
+
   if (!dollarValue) {
     throw new Error("No dollar value found");
   }
-
   if (!isToday(dollarValue.date)) {
-    fetchLastDolarValue()
-      .then((data) => {
-        if (data) {
-          dollarValue = data;
-          const { value, date } = dollarValue;
-          return { value, date };
-        }
-      })
-      .catch(() => {
-        const { value, date } = dollarValue;
-        return { value, date };
-      });
+    try {
+      const { value, date } = await fetchLastDolarValue();
+      return {
+        value,
+        date: moment(date).tz("America/Argentina/Buenos_Aires").format(),
+      };
+    } catch (error) {
+      const { value, date } = dollarValue;
+      return {
+        value,
+        date: moment(date).tz("America/Argentina/Buenos_Aires").format(),
+      };
+    }
   } else {
     const { value, date } = dollarValue;
-    return { value, date };
+    return {
+      value,
+      date: moment(date).tz("America/Argentina/Buenos_Aires").format(),
+    };
   }
 }
 
-export function getDollarValueOnDate(date) {
-  return prisma.item.findFirst({
+export async function getDollarValueOnDate(date) {
+  const valueOnDate = await prisma.item.findFirst({
     where: {
       currency_symbol: "USD",
       date: moment(date, "DD-MM-YYYY").toDate(),
     },
   });
+
+  return {
+    ...valueOnDate,
+    date: moment(valueOnDate.date)
+      .tz("America/Argentina/Buenos_Aires")
+      .format(),
+  };
 }
 
-export function getDollarValueOnDateRange(dateStart, dateEnd) {
-  return prisma.item.findMany({
+export async function getDollarValueOnDateRange(dateStart, dateEnd) {
+  const valueOnDate = await prisma.item.findMany({
     where: {
       currency_symbol: "USD",
       date: {
@@ -57,4 +68,9 @@ export function getDollarValueOnDateRange(dateStart, dateEnd) {
       },
     },
   });
+
+  return valueOnDate.map((value) => ({
+    ...value,
+    date: moment(value.date).tz("America/Argentina/Buenos_Aires").format(),
+  }));
 }

@@ -5,24 +5,33 @@ import moment from "moment";
 //Instantiate prisma client
 const prisma = new PrismaClient();
 
-export function getLastUvaValue() {
-  return prisma.Uva.findFirst({
+export async function getLastUvaValue() {
+  const uvaValue = await prisma.uva.findFirst({
     orderBy: {
       date: "desc",
     },
   });
+
+  return {
+    ...uvaValue,
+    date: moment(uvaValue.date).tz("America/Argentina/Buenos_Aires").format(),
+  };
 }
 
-export function getUvaValueOnDate(date) {
-  return prisma.Uva.findFirst({
+export async function getUvaValueOnDate(date) {
+  const uvaValue = await prisma.uva.findFirst({
     where: {
       date: moment(date, "DD-MM-YYYY").toDate(),
     },
   });
+  return {
+    ...uvaValue,
+    date: moment(uvaValue.date).tz("America/Argentina/Buenos_Aires").format(),
+  };
 }
 
-export function getUvaValueOnDateRange(dateStart, dateEnd) {
-  return prisma.Uva.findMany({
+export async function getUvaValueOnDateRange(dateStart, dateEnd) {
+  const uvaValue = await prisma.uva.findMany({
     where: {
       date: {
         gte: moment(dateStart, "DD-MM-YYYY").toDate(),
@@ -30,4 +39,8 @@ export function getUvaValueOnDateRange(dateStart, dateEnd) {
       },
     },
   });
+  return uvaValue.map((uva) => ({
+    ...uva,
+    date: moment(uva.date).tz("America/Argentina/Buenos_Aires").format(),
+  }));
 }

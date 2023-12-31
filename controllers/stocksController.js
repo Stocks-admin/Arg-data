@@ -1,4 +1,3 @@
-//Import prisma client
 import { PrismaClient } from "@prisma/client";
 import {
   fetchLastStockValue,
@@ -7,7 +6,6 @@ import {
 import { isToday } from "../helpers/dateHelpers.js";
 import moment from "moment";
 
-//Instantiate prisma client
 const prisma = new PrismaClient();
 
 export async function getLastStockValue(symbol, market = "nASDAQ") {
@@ -52,7 +50,7 @@ export async function getLastStockValue(symbol, market = "nASDAQ") {
   }
   let dollarValue = {
     value: lastStock?.value,
-    date: lastStock?.date,
+    date: moment(lastStock?.date).tz("America/Argentina/Buenos_Aires").format(),
   };
   if (!isToday(lastStock.date)) {
     dollarValue = await fetchLastStockValue(symbol, market);
@@ -61,7 +59,11 @@ export async function getLastStockValue(symbol, market = "nASDAQ") {
     }
   }
   const { value, date } = dollarValue;
-  return { value, date, organization: lastStock.Organization };
+  return {
+    value,
+    date: moment(date).tz("America/Argentina/Buenos_Aires").format(),
+    organization: lastStock.Organization,
+  };
 }
 
 export async function getStockValueOnDate(symbol, market = "NASDAQ", date) {
@@ -105,10 +107,9 @@ export async function getStockValueOnDate(symbol, market = "NASDAQ", date) {
       });
       symbolValue = {
         value: symbolValue.value,
-        date: symbolValue.date,
+        date: moment(date).tz("America/Argentina/Buenos_Aires").format(),
       };
     } catch (error) {
-      console.log(error);
       throw new Error("No value found");
     }
   }
@@ -119,7 +120,7 @@ export async function getStockValueOnDateRange(symbol, dateStart, dateEnd) {
   if (!dateEnd) {
     dateEnd = new Date();
   }
-  return await prisma.item.findMany({
+  const stocksValue = await prisma.item.findMany({
     where: {
       stock_symbol: symbol,
       date: {
@@ -128,6 +129,10 @@ export async function getStockValueOnDateRange(symbol, dateStart, dateEnd) {
       },
     },
   });
+  return stocksValue.map((stock) => ({
+    ...stock,
+    date: moment(stock.date).tz("America/Argentina/Buenos_Aires").format(),
+  }));
 }
 
 async function symbolInfo(symbol) {
