@@ -5,29 +5,45 @@ import moment from "moment";
 //Instantiate prisma client
 const prisma = new PrismaClient();
 
-export function getLastUvaValue() {
-  return prisma.Uva.findFirst({
+export async function getLastUvaValue() {
+  const uvaValue = await prisma.uva.findFirst({
     orderBy: {
       date: "desc",
     },
   });
+
+  return {
+    ...uvaValue,
+    date: moment(uvaValue.date).tz("America/Argentina/Buenos_Aires").format(),
+  };
 }
 
-export function getUvaValueOnDate(date) {
-  return prisma.Uva.findFirst({
+export async function getUvaValueOnDate(date) {
+  console.log(date);
+  const uvaValue = await prisma.uva.findFirst({
     where: {
-      date: moment(date, "DD-MM-YYYY").toDate(),
+      date: moment(date, "YYYY-MM-DD").toDate(),
     },
   });
+  console.log(uvaValue);
+  return {
+    ...uvaValue,
+    date: moment(uvaValue.date).tz("America/Argentina/Buenos_Aires").format(),
+  };
 }
 
-export function getUvaValueOnDateRange(dateStart, dateEnd) {
-  return prisma.Uva.findMany({
+export async function getUvaValueOnDateRange(dateStart, dateEnd) {
+  console.log(dateStart, dateEnd);
+  const uvaValue = await prisma.uva.findMany({
     where: {
       date: {
-        gte: moment(dateStart, "DD-MM-YYYY").toDate(),
-        lte: moment(dateEnd, "DD-MM-YYYY").toDate(),
+        gte: moment(dateStart, "YYYY-MM-DD").toDate(),
+        lte: moment(dateEnd, "YYYY-MM-DD").toDate(),
       },
     },
   });
+  return uvaValue.map((uva) => ({
+    ...uva,
+    date: moment(uva.date).tz("America/Argentina/Buenos_Aires").format(),
+  }));
 }

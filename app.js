@@ -6,6 +6,7 @@ import {
   generateMockDollars,
   generateMockMeli,
   loadAllSymbols,
+  updateBondPrices,
 } from "./controllers/infoController.js";
 import metrics from "./routes/metricsRoutes.js";
 import dollar from "./routes/dollarRoutes.js";
@@ -92,7 +93,7 @@ app.post("/update-prices", async (req, res) => {
       country: "TEST",
     },
   });
-  res.send(req.headers);
+  res.send("OK");
 });
 
 app.use("/metrics", metrics);

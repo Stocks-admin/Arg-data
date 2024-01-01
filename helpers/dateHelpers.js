@@ -9,7 +9,10 @@ export function isInMarketHours() {
 }
 
 export function isToday(date) {
-  return moment.utc(date).isSame(moment(), "day");
+  return moment
+    .utc(date)
+    .tz("America/Argentina/Buenos_Aires")
+    .isSame(moment.tz("America/Argentina/Buenos_Aires"), "day");
 }
 
 export function diffInHours(date) {
