@@ -46,10 +46,37 @@ export async function getDollarValueOnDate(date) {
   const valueOnDate = await prisma.item.findFirst({
     where: {
       currency_symbol: "USD",
-      date: moment(date, "DD-MM-YYYY").toDate(),
+      date: {
+        gte: moment(date)
+          .tz("America/Argentina/Buenos_Aires")
+          .startOf("day")
+          .toDate(),
+        lte: moment(date)
+          .tz("America/Argentina/Buenos_Aires")
+          .endOf("day")
+          .toDate(),
+      },
     },
   });
-
+  if (!valueOnDate) {
+    const nearestValue = await prisma.item.findFirst({
+      where: {
+        currency_symbol: "USD",
+        date: {
+          lte: moment(date).toDate(),
+        },
+      },
+      orderBy: {
+        date: "desc",
+      },
+    });
+    return {
+      ...nearestValue,
+      date: moment(nearestValue.date)
+        .tz("America/Argentina/Buenos_Aires")
+        .format(),
+    };
+  }
   return {
     ...valueOnDate,
     date: moment(valueOnDate.date)
@@ -70,6 +97,22 @@ export async function getDollarValueOnDateRange(dateStart, dateEnd) {
   });
 
   return valueOnDate.map((value) => ({
+    ...value,
+    date: moment(value.date).tz("America/Argentina/Buenos_Aires").format(),
+  }));
+}
+
+export async function getDollarValueOnDates(dates) {
+  const valuesOnDate = await prisma.item.findMany({
+    where: {
+      currency_symbol: "USD",
+      date: {
+        in: dates.map((date) => moment(date).toDate()),
+      },
+    },
+  });
+
+  return valuesOnDate.map((value) => ({
     ...value,
     date: moment(value.date).tz("America/Argentina/Buenos_Aires").format(),
   }));

@@ -6,6 +6,7 @@ import {
   generateMockDollars,
   generateMockMeli,
   loadAllSymbols,
+  updateBondPrices,
 } from "./controllers/infoController.js";
 import metrics from "./routes/metricsRoutes.js";
 import dollar from "./routes/dollarRoutes.js";

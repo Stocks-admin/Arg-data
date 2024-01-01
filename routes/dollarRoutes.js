@@ -3,6 +3,7 @@ import pkg from "apicache";
 import {
   getDollarValueOnDate,
   getDollarValueOnDateRange,
+  getDollarValueOnDates,
   getLastDollarValue,
 } from "../controllers/dollarController.js";
 import moment from "moment";
@@ -14,7 +15,6 @@ const cache = middleware;
 dollar.get("/current-dollar", async (req, res) => {
   try {
     const dollar = await getLastDollarValue();
-    console.log("DOLLAR: ", dollar);
     if (!dollar) {
       res.status(500).json({ message: "No dollar value found" });
     }
@@ -32,8 +32,8 @@ dollar.get("/dollar-on-date", async (req, res) => {
     }
     //Check if date is valid and before yesterday
     if (
-      !moment(date, "DD-MM-YYYY").isValid() ||
-      moment(date, "DD-MM-YYYY").isAfter(moment().subtract(1, "days"))
+      !moment(date).isValid() ||
+      moment(date).isAfter(moment().subtract(1, "days"))
     ) {
       throw new Error("Invalid date");
     }
@@ -61,6 +61,35 @@ dollar.get("/dollar-on-date-range", async (req, res) => {
       throw new Error("Invalid date");
     }
     const dollar = await getDollarValueOnDateRange(dateFrom, dateTo);
+    if (!dollar) {
+      res.status(404).json({ message: "No dollar value found" });
+    }
+    res.status(200).json(dollar);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+dollar.get("dollar-on-dates", async (req, res) => {
+  try {
+    const { dates } = req.body;
+    if (!dates) {
+      throw new Error("No dates provided");
+    }
+    //Check if dates are valid and before yesterday
+    const arrayOfDates = dates.split(",");
+
+    if (
+      arrayOfDates.some(
+        (date) =>
+          !moment(date).isValid() ||
+          moment(date).isAfter(moment().subtract(1, "days"))
+      )
+    ) {
+      throw new Error("Invalid dates");
+    }
+
+    const dollar = await getDollarValueOnDates(dates);
     if (!dollar) {
       res.status(404).json({ message: "No dollar value found" });
     }

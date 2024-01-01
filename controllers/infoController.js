@@ -3,6 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import {
   fetchSymbolPriceIOL,
   fetchSymbolPriceIOLOnDate,
+  loginToIOL,
 } from "../helpers/iolHelper.js";
 import moment from "moment-timezone";
 import { getLastDollarValue } from "./dollarController.js";
@@ -11,18 +12,24 @@ import { getLastDollarValue } from "./dollarController.js";
 const prisma = new PrismaClient();
 
 export async function fetchLastDolarValue() {
-  const dollar = await axios.get("https://dolarapi.com/v1/dolares/bolsa");
-  if (dollar.status === 200 && dollar?.data?.venta) {
-    const isDollarLoaded = await prisma.item.findFirst({
-      where: {
-        date: moment().toDate(),
-        currency_symbol: "USD",
-      },
-    });
-    let newDollar;
-    if (!isDollarLoaded) {
-      newDollar = await prisma.item.create({
-        data: {
+  try {
+    const dollar = await axios.get("https://dolarapi.com/v1/dolares/bolsa");
+    if (dollar?.data?.venta) {
+      const newDollar = await prisma.item.upsert({
+        where: {
+          currency_symbol: "USD",
+          date: {
+            gte: moment()
+              .tz("America/Argentina/Buenos_Aires")
+              .startOf("day")
+              .toDate(),
+            lte: moment()
+              .tz("America/Argentina/Buenos_Aires")
+              .endOf("day")
+              .toDate(),
+          },
+        },
+        create: {
           value: dollar.data.venta,
           date: moment().toDate(),
           type: "Currency",
@@ -32,30 +39,18 @@ export async function fetchLastDolarValue() {
             },
           },
         },
-      });
-    } else {
-      newDollar = await prisma.item.updateMany({
-        where: {
-          date: moment().toDate(),
-          currency_symbol: "USD",
-        },
-        data: {
+        update: {
           value: dollar.data.venta,
         },
       });
-    }
-    if (newDollar?.date) {
-      const { value, date } = newDollar;
-      return { value, date };
-    } else if (newDollar?.count && newDollar.count > 0) {
       return {
-        value: dollar.data.venta || 0,
+        value: dollar.data.venta,
         date: moment().toDate(),
       };
     } else {
       throw new Error("Error fetching dollar value");
     }
-  } else {
+  } catch (error) {
     throw new Error("Error fetching dollar value");
   }
 }
@@ -83,11 +78,20 @@ export function fetchLastTnaValue() {}
 
 export async function fetchLastStockValue(symbol, market = "nASDAQ") {
   const resp = await fetchSymbolPriceIOL(symbol, market);
-  if (resp.price) {
+  if (!isNaN(resp?.price)) {
     const isStockLoaded = await prisma.item.findFirst({
       where: {
         stock_symbol: symbol,
-        date: new Date(),
+        date: {
+          gte: moment
+            .tz("America/Argentina/Buenos_Aires")
+            .startOf("day")
+            .toDate(),
+          lte: moment
+            .tz("America/Argentina/Buenos_Aires")
+            .endOf("day")
+            .toDate(),
+        },
       },
     });
     let newStock;
@@ -113,7 +117,16 @@ export async function fetchLastStockValue(symbol, market = "nASDAQ") {
       newStock = await prisma.item.updateMany({
         where: {
           stock_symbol: symbol,
-          date: new Date(),
+          date: {
+            gte: moment
+              .tz("America/Argentina/Buenos_Aires")
+              .startOf("day")
+              .toDate(),
+            lte: moment
+              .tz("America/Argentina/Buenos_Aires")
+              .endOf("day")
+              .toDate(),
+          },
         },
         data: {
           value: resp.price,
@@ -131,52 +144,35 @@ export async function fetchLastStockValue(symbol, market = "nASDAQ") {
 }
 
 export async function fetchSymbolValueOnDate(symbol, market = "nASDAQ", date) {
-  const resp = await fetchSymbolPriceIOLOnDate(symbol, market, date);
-  console.log(resp);
-  if (resp?.price) {
-    const isStockLoaded = await prisma.item.findFirst({
-      where: {
-        stock_symbol: symbol,
-        date: moment(date, "YYYY-MM-DD").toDate(),
-      },
-    });
-    let newStock;
-    if (!isStockLoaded) {
-      newStock = await prisma.item.create({
-        data: {
-          value: resp?.price,
-          date: date,
-          type: "Stock",
-          Organization: {
-            connectOrCreate: {
-              where: {
-                symbol,
-              },
-              create: {
-                symbol,
-              },
+  try {
+    const resp = await fetchSymbolPriceIOLOnDate(symbol, market, date);
+    if (isNaN(resp?.price)) throw new Error("Error fetching stock value");
+    let newStock = await prisma.item.create({
+      data: {
+        value: resp?.price,
+        date: moment(date).toDate(),
+        type: "Stock",
+        market: market.toUpperCase(),
+        Organization: {
+          connectOrCreate: {
+            where: {
+              symbol,
+            },
+            create: {
+              symbol,
             },
           },
         },
-      });
-    } else {
-      newStock = await prisma.item.updateMany({
-        where: {
-          stock_symbol: symbol,
-          date: moment(date, "YYYY-MM-DD").toDate(),
-        },
-        data: {
-          value: resp.price,
-        },
-      });
-    }
-    if ((newStock?.count && newStock.count > 0) || newStock?.date) {
+      },
+    });
+
+    if (newStock?.count && newStock.count > 0 && newStock?.date) {
       return { value: resp.price, date };
     } else {
       throw new Error("Error fetching stock value");
     }
-  } else {
-    throw new Error("Error fetching stock value");
+  } catch (error) {
+    throw new Error(error);
   }
 }
 
@@ -285,5 +281,277 @@ export async function loadAllSymbols(
   } catch (error) {
     console.log(error);
     throw new Error("Error loading symbols");
+  }
+}
+
+export async function updateBondPrices() {
+  try {
+    const { access_token: iol_token } = await loginToIOL();
+
+    const databaseBonds = await prisma.item.findMany({
+      where: {
+        type: "Bond",
+        date: {
+          gte: moment()
+            .tz("America/Argentina/Buenos_Aires")
+            .startOf("day")
+            .toDate(),
+          lte: moment()
+            .tz("America/Argentina/Buenos_Aires")
+            .endOf("day")
+            .toDate(),
+        },
+      },
+    });
+
+    const bonds = await axios.get(
+      "https://api.invertironline.com/api/v2/Cotizaciones/titulosPublicos/argentina/Todos",
+      {
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${iol_token}`,
+        },
+      }
+    );
+    if (bonds.status !== 200 || bonds.data.length <= 0)
+      throw new Error("Error fetching bonds");
+
+    const dolarValue = await getLastDollarValue();
+    const activosParaActualizar = databaseBonds
+      .filter((databaseBond) => {
+        const activoEnAPI = bonds.data.titulos.find(
+          (activo) => activo.simbolo === databaseBond.bond_symbol
+        );
+        return activoEnAPI !== undefined;
+      })
+      .map((databaseBond) => {
+        const bond = bonds.data.titulos.find(
+          (activo) => activo.simbolo === databaseBond.bond_symbol
+        );
+        const value =
+          bond.moneda === "1" || bond.moneda === "peso_Argentino"
+            ? bond.ultimoPrecio / dolarValue.value
+            : bond.ultimoPrecio;
+
+        const date = moment().format();
+
+        return {
+          where: { id: databaseBond.id },
+          data: {
+            value,
+            date,
+          },
+        };
+      });
+
+    for (const registro of activosParaActualizar) {
+      // Lógica para actualizar cada registro
+      await prisma.item.update({ ...registro });
+    }
+
+    return 1;
+  } catch (error) {
+    throw new Error(error);
+  }
+}
+
+export async function updateCedearsPrice() {
+  try {
+    const { access_token: iol_token } = await loginToIOL();
+
+    const databaseCedears = await prisma.item.findMany({
+      where: {
+        type: "Stock",
+        market: "CEDEARS",
+        date: {
+          gte: moment()
+            .tz("America/Argentina/Buenos_Aires")
+            .startOf("day")
+            .toDate(),
+          lte: moment()
+            .tz("America/Argentina/Buenos_Aires")
+            .endOf("day")
+            .toDate(),
+        },
+      },
+    });
+
+    const cedears = await axios.get(
+      "https://api.invertironline.com/api/v2/Cotizaciones/cedears/argentina/Todos",
+      {
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${iol_token}`,
+        },
+      }
+    );
+
+    const dolarValue = await getLastDollarValue();
+
+    const activosParaActualizar = databaseCedears
+      .filter((databaseCedear) => {
+        const apiAsset = cedears.find(
+          (activo) => activo.simbolo === databaseCedear.simbolo
+        );
+        return apiAsset !== undefined;
+      })
+      .map((databaseCedear) => {
+        const cedear = cedears.find(
+          (activo) => activo.simbolo === databaseCedear.bond_symbol
+        );
+        return {
+          where: { id: databaseCedear.id },
+          data: {
+            value:
+              cedear.moneda === "1" || cedear.moneda === "peso_Argentino"
+                ? cedear.ultimoPrecio / dolarValue.value
+                : cedear.ultimoPrecio,
+            date: moment.tz("America/Argentina/Buenos_Aires").toDate(),
+          },
+        };
+      });
+
+    for (const registro of activosParaActualizar) {
+      // Lógica para actualizar cada registro
+      await prisma.item.update({ ...registro });
+    }
+
+    return 1;
+  } catch (error) {
+    throw new Error(error);
+  }
+}
+
+export async function updateArgentinaStockPrices() {
+  try {
+    const { access_token: iol_token } = await loginToIOL();
+
+    const databaseStocks = await prisma.item.findMany({
+      where: {
+        type: "Stock",
+        market: "BCBA",
+        date: {
+          gte: moment()
+            .tz("America/Argentina/Buenos_Aires")
+            .startOf("day")
+            .toDate(),
+          lte: moment()
+            .tz("America/Argentina/Buenos_Aires")
+            .endOf("day")
+            .toDate(),
+        },
+      },
+    });
+
+    const stocks = await axios.get(
+      "https://api.invertironline.com/api/v2/Cotizaciones/acciones/argentina/Todos",
+      {
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${iol_token}`,
+        },
+      }
+    );
+
+    const dolarValue = await getLastDollarValue();
+
+    const activosParaActualizar = databaseStocks
+      .filter((databaseStock) => {
+        const apiAsset = stocks.find(
+          (activo) => activo.simbolo === databaseStock.simbolo
+        );
+        return apiAsset !== undefined;
+      })
+      .map((databaseStock) => {
+        const stock = stocks.find(
+          (activo) => activo.simbolo === databaseStock.bond_symbol
+        );
+        return {
+          where: { id: databaseStock.id },
+          data: {
+            value:
+              stock.moneda === "1" || stock.moneda === "peso_Argentino"
+                ? stock.ultimoPrecio / dolarValue.value
+                : stock.ultimoPrecio,
+            date: moment.tz("America/Argentina/Buenos_Aires").toDate(),
+          },
+        };
+      });
+
+    for (const registro of activosParaActualizar) {
+      // Lógica para actualizar cada registro
+      await prisma.item.update({ ...registro });
+    }
+
+    return 1;
+  } catch (error) {
+    throw new Error(error);
+  }
+}
+
+export async function updateNasdaqStockPrices() {
+  try {
+    const { access_token: iol_token } = await loginToIOL();
+
+    const databaseStocks = await prisma.item.findMany({
+      where: {
+        type: "Stock",
+        market: "NASDAQ",
+        date: {
+          gte: moment()
+            .tz("America/Argentina/Buenos_Aires")
+            .startOf("day")
+            .toDate(),
+          lte: moment()
+            .tz("America/Argentina/Buenos_Aires")
+            .endOf("day")
+            .toDate(),
+        },
+      },
+    });
+
+    const stocks = await axios.get(
+      "https://api.invertironline.com/api/v2/Cotizaciones/acciones/estados_unidos/Todos",
+      {
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${iol_token}`,
+        },
+      }
+    );
+
+    const dolarValue = await getLastDollarValue();
+
+    const activosParaActualizar = databaseStocks
+      .filter((databaseStock) => {
+        const apiAsset = stocks.find(
+          (activo) => activo.simbolo === databaseStock.simbolo
+        );
+        return apiAsset !== undefined;
+      })
+      .map((databaseStock) => {
+        const stock = stocks.find(
+          (activo) => activo.simbolo === databaseStock.bond_symbol
+        );
+        return {
+          where: { id: databaseStock.id },
+          data: {
+            value:
+              stock.moneda === "1" || stock.moneda === "peso_Argentino"
+                ? stock.ultimoPrecio / dolarValue.value
+                : stock.ultimoPrecio,
+            date: moment.tz("America/Argentina/Buenos_Aires").toDate(),
+          },
+        };
+      });
+
+    for (const registro of activosParaActualizar) {
+      // Lógica para actualizar cada registro
+      await prisma.item.update({ ...registro });
+    }
+
+    return 1;
+  } catch (error) {
+    throw new Error(error);
   }
 }

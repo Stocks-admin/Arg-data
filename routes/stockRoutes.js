@@ -64,6 +64,7 @@ stocks.get("/stock-on-date/:symbol", async (req, res) => {
       throw new Error("Invalid date");
     }
     const stock = await getStockValueOnDate(symbol, market, date);
+    console.log(stock);
     if (!stock) {
       throw new Error("No stock value found");
     }
@@ -104,7 +105,6 @@ stocks.get("/random-stocks", async (req, res) => {
   try {
     const { limit } = req.query;
     const stocks = await getRandomStocks(limit);
-    console.log(stocks);
     if (!stocks) {
       throw new Error("No stocks found");
     }
