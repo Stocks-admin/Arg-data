@@ -1,8 +1,6 @@
 import express from "express";
 import bodyParser from "body-parser";
 import {
-  fetchAllMEPValues,
-  fetchAllUvaValues,
   fetchLastDolarValue,
   fetchLastUvaValue,
   generateMockDollars,
@@ -14,7 +12,6 @@ import dollar from "./routes/dollarRoutes.js";
 import stocks from "./routes/stockRoutes.js";
 import { PrismaClient } from "@prisma/client";
 import cors from "cors";
-import { fetchAllData } from "./update-prices-aux.js";
 
 const app = express();
 
