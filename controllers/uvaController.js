@@ -26,9 +26,10 @@ export async function getUvaValueOnDate(date) {
     },
   });
   console.log(uvaValue);
+  if (!uvaValue) return null;
   return {
     ...uvaValue,
-    date: moment(uvaValue.date).tz("America/Argentina/Buenos_Aires").format(),
+    date: moment(date).tz("America/Argentina/Buenos_Aires").format(),
   };
 }
 
