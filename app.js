@@ -6,13 +6,13 @@ import {
   generateMockDollars,
   generateMockMeli,
   loadAllSymbols,
-  updateBondPrices,
 } from "./controllers/infoController.js";
 import metrics from "./routes/metricsRoutes.js";
 import dollar from "./routes/dollarRoutes.js";
 import stocks from "./routes/stockRoutes.js";
 import { PrismaClient } from "@prisma/client";
 import cors from "cors";
+import { fetchAllData } from "./update-prices-aux.js";
 
 const app = express();
 
@@ -94,6 +94,15 @@ app.post("/update-prices", async (req, res) => {
     },
   });
   res.send("OK");
+});
+
+app.get("/test-update", async (req, res) => {
+  const errors = fetchAllData();
+  if (errors.length > 0) {
+    res.status(500).send(`Errors found: ${errors}`);
+  } else {
+    res.send("OK");
+  }
 });
 
 app.use("/metrics", metrics);

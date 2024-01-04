@@ -303,7 +303,7 @@ export async function updateBondPrices() {
         },
       },
     });
-
+    if (databaseBonds.length <= 0) return 1;
     const bonds = await axios.get(
       "https://api.invertironline.com/api/v2/Cotizaciones/titulosPublicos/argentina/Todos",
       {
@@ -375,7 +375,7 @@ export async function updateCedearsPrice() {
         },
       },
     });
-
+    if (databaseCedears.length <= 0) return 1;
     const cedears = await axios.get(
       "https://api.invertironline.com/api/v2/Cotizaciones/cedears/argentina/Todos",
       {
@@ -442,7 +442,7 @@ export async function updateArgentinaStockPrices() {
         },
       },
     });
-
+    if (databaseStocks.length <= 0) return 1;
     const stocks = await axios.get(
       "https://api.invertironline.com/api/v2/Cotizaciones/acciones/argentina/Todos",
       {
@@ -509,6 +509,7 @@ export async function updateNasdaqStockPrices() {
         },
       },
     });
+    if (databaseStocks.length <= 0) return 1;
 
     const stocks = await axios.get(
       "https://api.invertironline.com/api/v2/Cotizaciones/acciones/estados_unidos/Todos",
