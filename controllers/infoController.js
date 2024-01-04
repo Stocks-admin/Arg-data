@@ -1,5 +1,5 @@
 import axios from "axios";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, ItemTypes } from "@prisma/client";
 import {
   fetchSymbolPriceIOL,
   fetchSymbolPriceIOLOnDate,
@@ -15,42 +15,57 @@ export async function fetchLastDolarValue() {
   try {
     const dollar = await axios.get("https://dolarapi.com/v1/dolares/bolsa");
     if (dollar?.data?.venta) {
-      const newDollar = await prisma.item.upsert({
+      const dolarExists = await prisma.item.findFirst({
         where: {
           currency_symbol: "USD",
           date: {
-            gte: moment()
+            gte: moment
               .tz("America/Argentina/Buenos_Aires")
               .startOf("day")
               .toDate(),
-            lte: moment()
+            lte: moment
               .tz("America/Argentina/Buenos_Aires")
               .endOf("day")
               .toDate(),
           },
         },
-        create: {
-          value: dollar.data.venta,
-          date: moment().toDate(),
-          type: "Currency",
-          Currency: {
-            connect: {
-              symbol: "USD",
+      });
+
+      let newDollar;
+
+      if (!dolarExists) {
+        newDollar = await prisma.item.create({
+          data: {
+            value: dollar.data.venta,
+            date: moment().toDate(),
+            type: "Currency",
+            Currency: {
+              connect: {
+                symbol: "USD",
+              },
             },
           },
-        },
-        update: {
-          value: dollar.data.venta,
-        },
-      });
+        });
+      } else {
+        newDollar = await prisma.item.update({
+          where: {
+            id: dolarExists.id,
+          },
+          data: {
+            value: dollar.data.venta,
+          },
+        });
+      }
+
       return {
         value: dollar.data.venta,
-        date: moment().toDate(),
+        date: moment.tz("America/Argentina/Buenos_Aires").format(),
       };
     } else {
       throw new Error("Error fetching dollar value");
     }
   } catch (error) {
+    console.log(error);
     throw new Error("Error fetching dollar value");
   }
 }
