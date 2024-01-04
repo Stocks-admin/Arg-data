@@ -12,7 +12,6 @@ import dollar from "./routes/dollarRoutes.js";
 import stocks from "./routes/stockRoutes.js";
 import { PrismaClient } from "@prisma/client";
 import cors from "cors";
-import { fetchAllData } from "./update-prices-aux.js";
 
 const app = express();
 
@@ -79,29 +78,6 @@ app.get("/generate-symbols", async (req, res) => {
     }
   } catch (error) {
     res.status(500).send(error.message);
-  }
-});
-
-app.post("/update-prices", async (req, res) => {
-  console.log(req.body);
-  console.log(req.headers);
-  console.log("Updating prices");
-  const prisma = new PrismaClient();
-  const resp = await prisma.bond.create({
-    data: {
-      symbol: "TEST",
-      country: "TEST",
-    },
-  });
-  res.send("OK");
-});
-
-app.get("/test-update", async (req, res) => {
-  const errors = fetchAllData();
-  if (errors.length > 0) {
-    res.status(500).send(`Errors found: ${errors}`);
-  } else {
-    res.send("OK");
   }
 });
 
