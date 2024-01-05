@@ -58,6 +58,8 @@ export async function fetchLastDolarValue() {
         });
       }
 
+      if (!newDollar) throw new Error("Error fetching dollar value");
+
       return {
         value: dollar.data.venta,
         date: moment.tz("America/Argentina/Buenos_Aires").format(),
@@ -66,7 +68,6 @@ export async function fetchLastDolarValue() {
       throw new Error("Error fetching dollar value");
     }
   } catch (error) {
-    console.log(error);
     throw new Error("Error fetching dollar value");
   }
 }

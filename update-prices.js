@@ -9,8 +9,6 @@ import {
 
 let errors = [];
 
-console.log("TEST FETCH");
-
 //FETCH UVA
 fetchLastUvaValue()
   .then(() => {
