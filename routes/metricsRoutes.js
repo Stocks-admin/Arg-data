@@ -5,10 +5,13 @@ import {
   getUvaValueOnDate,
   getUvaValueOnDateRange,
 } from "../controllers/uvaController.js";
+import pkg from "apicache";
 
 const metrics = express.Router();
+const { middleware } = pkg;
+const cache = middleware;
 
-metrics.get("/current-uva", async (req, res) => {
+metrics.get("/current-uva", [cache("3 hours")], async (req, res) => {
   try {
     const uva = await getLastUvaValue();
     if (!uva) {

@@ -12,7 +12,7 @@ const { middleware } = pkg;
 const dollar = express.Router();
 const cache = middleware;
 
-dollar.get("/current-dollar", async (req, res) => {
+dollar.get("/current-dollar", [cache("3 hours")], async (req, res) => {
   try {
     const dollar = await getLastDollarValue();
     if (!dollar) {
