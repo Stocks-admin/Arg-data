@@ -2,7 +2,10 @@ import { PrismaClient } from "@prisma/client";
 import axios from "axios";
 import moment from "moment";
 import { parseMarket } from "../utils/markets.js";
-import { getLastDollarValue } from "../controllers/dollarController.js";
+import {
+  getDollarValueOnDate,
+  getLastDollarValue,
+} from "../controllers/dollarController.js";
 
 const db = new PrismaClient();
 
@@ -102,10 +105,10 @@ export const fetchSymbolPriceIOL = async (symbol, mercado = "nASDAQ") => {
         },
       }
     );
-    if (resp?.data?.moneda === "peso_argentino" && resp?.data?.ultimoPrecio) {
+    if (resp?.data?.moneda === "peso_Argentino" && resp?.data?.ultimoPrecio) {
       const { value: dollar } = await getLastDollarValue();
       return { price: resp?.data?.ultimoPrecio / dollar };
-    } else if (resp?.data?.ultimoPrecio) {
+    } else if (!isNaN(resp?.data?.ultimoPrecio)) {
       return { price: resp?.data?.ultimoPrecio };
     } else {
       throw new Error("No se encontró precio");
@@ -121,8 +124,8 @@ export async function fetchSymbolPriceIOLOnDate(
   market = "nASDAQ",
   date
 ) {
-  const symbolMarket = parseMarket[market.toUpperCase()] || "nASDAQ";
   try {
+    const symbolMarket = parseMarket[market.toUpperCase()] || "nASDAQ";
     let access_token, expires_at;
     const currentToken = await db.iol_token.findUnique({
       where: {
@@ -142,12 +145,22 @@ export async function fetchSymbolPriceIOLOnDate(
     if (moment().isAfter(moment(expires_at)))
       access_token = (await loginToIOL()).access_token;
 
-    console.log("date", date);
+    let dateToSearch = date;
+
+    if (moment(date).weekday() === 6) {
+      dateToSearch = moment(date).weekday(5).format("YYYY-MM-DD");
+    }
+    if (moment(date).weekday() === 0) {
+      dateToSearch = moment(date)
+        .subtract(1, "day")
+        .weekday(5)
+        .format("YYYY-MM-DD");
+    }
 
     const resp = await axios.get(
       `https://api.invertironline.com/api/v2/${symbolMarket}/Titulos/${symbol}/Cotizacion/seriehistorica/${moment(
-        date
-      ).format("YYYY-MM-DD")}/${moment(date)
+        dateToSearch
+      ).format("YYYY-MM-DD")}/${moment(dateToSearch)
         .add(1, "day")
         .format("YYYY-MM-DD")}/sinAjustar`,
       {
@@ -156,27 +169,15 @@ export async function fetchSymbolPriceIOLOnDate(
         },
       }
     );
-    console.log(resp.data);
     if (resp.data.length > 0 && resp.data[0].ultimoPrecio) {
-      await db.item.create({
-        data: {
-          value: resp.data[0].ultimoPrecio || 0,
-          date: new Date(date),
-          type: "Stock",
-          market: market.toUpperCase(),
-          Organization: {
-            connectOrCreate: {
-              where: {
-                symbol,
-              },
-              create: {
-                symbol,
-              },
-            },
-          },
-        },
-      });
-      return { price: resp.data[0].ultimoPrecio || 0 };
+      console.log("RESP", resp.data[0]);
+      console.log("DATE", dateToSearch, date);
+      if (resp.data[0].moneda === "peso_Argentino") {
+        const { value: dollar } = await getDollarValueOnDate(date);
+        return { price: resp.data[0].ultimoPrecio / dollar };
+      } else {
+        return { price: resp.data[0].ultimoPrecio };
+      }
     } else {
       throw new Error("No se encontró precio");
     }

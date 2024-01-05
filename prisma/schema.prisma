@@ -18,14 +18,14 @@ model Tna {
 
 model Uva {
   id    Int      @id @default(autoincrement())
-  date  DateTime @unique @default(now()) @db.Date
+  date  DateTime @unique @default(now())
   value Float
 }
 
 model Item {
   id     Int       @id @default(autoincrement())
   type   ItemTypes
-  date   DateTime  @db.Date
+  date   DateTime
   market Market?
   value  Float
 
@@ -35,6 +35,11 @@ model Item {
   Currency        Currency?     @relation(fields: [currency_symbol], references: [symbol])
   bond_symbol     String?
   Bond            Bond?         @relation(fields: [bond_symbol], references: [symbol])
+
+  @@index([stock_symbol], name: "stock_symbol")
+  @@index([currency_symbol], name: "currency_symbol")
+  @@index([bond_symbol], name: "bond_symbol")
+  @@index([date], name: "date")
 }
 
 enum ItemTypes {
