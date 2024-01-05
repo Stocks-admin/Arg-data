@@ -12,43 +12,53 @@ import { getLastDollarValue } from "./dollarController.js";
 const prisma = new PrismaClient();
 
 export async function fetchLastDolarValue() {
-  const dollar = await axios.get("https://dolarapi.com/v1/dolares/bolsa");
-  if (dollar.status === 200 && dollar?.data?.venta) {
-    const isDollarLoaded = await prisma.item.findFirst({
-      where: {
-        date: moment.tz("America/Argentina/Buenos_Aires").toDate(),
-        currency_symbol: "USD",
-      },
-    });
-    let newDollar;
-    if (!isDollarLoaded) {
-      newDollar = await prisma.item.create({
-        data: {
-          value: dollar.data.venta,
-          date: moment.tz("America/Argentina/Buenos_Aires").toDate(),
-          type: "Currency",
-          Currency: {
-            connect: {
-              symbol: "USD",
-            },
+  try {
+    const dollar = await axios.get("https://dolarapi.com/v1/dolares/bolsa");
+    if (dollar?.data?.venta) {
+      const dolarExists = await prisma.item.findFirst({
+        where: {
+          currency_symbol: "USD",
+          date: {
+            gte: moment
+              .tz("America/Argentina/Buenos_Aires")
+              .startOf("day")
+              .toDate(),
+            lte: moment
+              .tz("America/Argentina/Buenos_Aires")
+              .endOf("day")
+              .toDate(),
           },
         },
       });
-    } else {
-      newDollar = await prisma.item.updateMany({
-        where: {
-          date: moment.tz("America/Argentina/Buenos_Aires").toDate(),
-          currency_symbol: "USD",
-        },
-        data: {
-          value: dollar.data.venta,
-        },
-      });
-    }
-    if (newDollar?.date) {
-      const { value, date } = newDollar;
-      return { value, date };
-    } else if (newDollar?.count && newDollar.count > 0) {
+
+      let newDollar;
+
+      if (!dolarExists) {
+        newDollar = await prisma.item.create({
+          data: {
+            // value: dollar.data.venta,
+            value: 1,
+            date: moment().toDate(),
+            type: "Currency",
+            Currency: {
+              connect: {
+                symbol: "USD",
+              },
+            },
+          },
+        });
+      } else {
+        newDollar = await prisma.item.update({
+          where: {
+            id: dolarExists.id,
+          },
+          data: {
+            value: 1,
+            // value: dollar.data.venta,
+          },
+        });
+      }
+
       return {
         value: dollar.data.venta || 0,
         date: moment.tz("America/Argentina/Buenos_Aires").toDate(),

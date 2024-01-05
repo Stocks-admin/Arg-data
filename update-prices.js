@@ -1,34 +1,68 @@
-import { PrismaClient } from "@prisma/client";
+import {
+  fetchLastDolarValue,
+  fetchLastUvaValue,
+  updateArgentinaStockPrices,
+  updateBondPrices,
+  updateCedearsPrice,
+  updateNasdaqStockPrices,
+} from "./controllers/infoController.js";
 
-console.log("Updating prices");
-const args = process.argv.slice(2);
-console.log(args);
-const prisma = new PrismaClient();
-const resp = await prisma.bond.upsert({
-  where: {
-    symbol: "TEST",
-  },
-  create: {
-    symbol: "TEST",
-    country: "TEST",
-  },
-  update: {
-    symbol: "TEST",
-    country: "TEST",
-  },
-});
-console.log(resp);
+let errors = [];
 
-// Función para obtener el valor de un parámetro
-function getParamValue(paramName) {
-  const index = args.indexOf(`--${paramName}`);
-  return index !== -1 ? args[index + 1] : null;
+console.log("TEST FETCH");
+
+//FETCH UVA
+fetchLastUvaValue()
+  .then(() => {
+    console.log("UVA value fetched");
+  })
+  .catch(() => {
+    errors.push("UVA");
+  });
+
+//FETCH DOLAR
+fetchLastDolarValue()
+  .then(() => {
+    console.log("Dolar value fetched");
+  })
+  .catch(() => {
+    errors.push("Dolar");
+  });
+
+//FETCH BONDS
+updateBondPrices()
+  .then(() => {
+    console.log("Bonds updated");
+  })
+  .catch(() => {
+    errors.push("Bonds");
+  });
+
+//FETCH STOCKS
+updateCedearsPrice()
+  .then(() => {
+    console.log("Cedears updated");
+  })
+  .catch(() => {
+    errors.push("Cedears");
+  });
+
+updateNasdaqStockPrices()
+  .then(() => {
+    console.log("Nasdaq stocks updated");
+  })
+  .catch(() => {
+    errors.push("Nasdaq stocks");
+  });
+
+updateArgentinaStockPrices()
+  .then(() => {
+    console.log("Argentina stocks updated");
+  })
+  .catch(() => {
+    errors.push("Argentina stocks");
+  });
+
+if (errors.length > 0) {
+  console.log("Errors fetching: ", errors);
 }
-
-// Obtener los valores de los parámetros
-const param1Value = getParamValue("param1");
-const param2Value = getParamValue("param2");
-
-// Hacer algo con los valores de los parámetros
-console.log("Valor de param1:", param1Value);
-console.log("Valor de param2:", param2Value);
