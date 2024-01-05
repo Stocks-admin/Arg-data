@@ -9,6 +9,8 @@ import {
 
 let errors = [];
 
+console.log("TEST FETCH");
+
 //FETCH UVA
 fetchLastUvaValue()
   .then(() => {
@@ -62,5 +64,5 @@ updateArgentinaStockPrices()
   });
 
 if (errors.length > 0) {
-  console.log(`Errors found: ${errors}`);
+  console.log("Errors fetching: ", errors);
 }

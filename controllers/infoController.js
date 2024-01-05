@@ -37,7 +37,7 @@ export async function fetchLastDolarValue() {
         newDollar = await prisma.item.create({
           data: {
             value: dollar.data.venta,
-            date: moment().toDate(),
+            date: moment.tz("America/Argentina/Buenos_Aires").toDate(),
             type: "Currency",
             Currency: {
               connect: {
@@ -52,6 +52,7 @@ export async function fetchLastDolarValue() {
             id: dolarExists.id,
           },
           data: {
+            date: moment.tz("America/Argentina/Buenos_Aires").toDate(),
             value: dollar.data.venta,
           },
         });
@@ -145,6 +146,7 @@ export async function fetchLastStockValue(symbol, market = "nASDAQ") {
         },
         data: {
           value: resp.price,
+          date: moment.tz("America/Argentina/Buenos_Aires").toDate(),
         },
       });
     }
