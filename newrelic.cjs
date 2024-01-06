@@ -1,4 +1,6 @@
-require("newrelic");
+const newRelic = require("newrelic");
+
+newRelic.instrumentLoadedModule("express", express);
 
 ("use strict");
 /**
