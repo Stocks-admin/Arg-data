@@ -541,6 +541,9 @@ export async function updateNasdaqStockPrices() {
       }
     );
 
+    if (stocks.status !== 200 || stocks.data.length <= 0)
+      throw new Error("Error fetching stocks");
+
     const dolarValue = await getLastDollarValue();
 
     const activosParaActualizar = databaseStocks
