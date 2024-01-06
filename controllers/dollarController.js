@@ -24,20 +24,20 @@ export async function getLastDollarValue() {
       const { value, date } = await fetchLastDolarValue();
       return {
         value,
-        date: moment(date).tz("America/Argentina/Buenos_Aires").format(),
+        date: moment.tz(date, "America/Argentina/Buenos_Aires").format(),
       };
     } catch (error) {
       const { value, date } = dollarValue;
       return {
         value,
-        date: moment(date).tz("America/Argentina/Buenos_Aires").format(),
+        date: moment.tz(date, "America/Argentina/Buenos_Aires").format(),
       };
     }
   } else {
     const { value, date } = dollarValue;
     return {
       value,
-      date: moment(date).tz("America/Argentina/Buenos_Aires").format(),
+      date: moment.tz(date, "America/Argentina/Buenos_Aires").format(),
     };
   }
 }
