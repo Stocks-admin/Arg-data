@@ -19,13 +19,11 @@ export async function getLastUvaValue() {
 }
 
 export async function getUvaValueOnDate(date) {
-  console.log(date);
   const uvaValue = await prisma.uva.findFirst({
     where: {
       date: moment(date, "YYYY-MM-DD").toDate(),
     },
   });
-  console.log(uvaValue);
   if (!uvaValue) return null;
   return {
     ...uvaValue,
@@ -34,7 +32,6 @@ export async function getUvaValueOnDate(date) {
 }
 
 export async function getUvaValueOnDateRange(dateStart, dateEnd) {
-  console.log(dateStart, dateEnd);
   const uvaValue = await prisma.uva.findMany({
     where: {
       date: {

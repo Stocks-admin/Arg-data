@@ -62,7 +62,9 @@ export async function fetchLastDolarValue() {
 
       return {
         value: dollar.data.venta,
-        date: moment.tz("America/Argentina/Buenos_Aires").format(),
+        date: moment(newDollar.date)
+          .tz("America/Argentina/Buenos_Aires")
+          .format(),
       };
     } else {
       throw new Error("Error fetching dollar value");
@@ -82,7 +84,7 @@ export async function fetchLastUvaValue() {
     const lastUva = uva.data[uva.data.length - 1];
     return await prisma.uva.create({
       data: {
-        date: new Date(lastUva.d),
+        date: moment.tz(lastUva.d, "America/Argentina/Buenos_Aires").toDate(),
         value: lastUva.v,
       },
     });
@@ -116,7 +118,7 @@ export async function fetchLastStockValue(symbol, market = "nASDAQ") {
       newStock = await prisma.item.create({
         data: {
           value: resp.price,
-          date: new Date(),
+          date: moment().toDate(),
           type: "Stock",
           Organization: {
             connectOrCreate: {
@@ -147,7 +149,7 @@ export async function fetchLastStockValue(symbol, market = "nASDAQ") {
         },
         data: {
           value: resp.price,
-          date: moment.tz("America/Argentina/Buenos_Aires").toDate(),
+          date: moment().toDate(),
         },
       });
     }
