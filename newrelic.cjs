@@ -1,6 +1,7 @@
-const newRelic = require("newrelic");
+const express = require("express");
+const newrelic = require("newrelic");
 
-newRelic.instrumentLoadedModule("express", express);
+newrelic.instrumentLoadedModule("express", express);
 
 ("use strict");
 /**
@@ -31,6 +32,7 @@ exports.config = {
    * will be captured for all traces, unless otherwise specified in a destination's
    * attributes include/exclude lists.
    */
+  enforce_backstop: false,
   allow_all_headers: true,
   attributes: {
     /**
