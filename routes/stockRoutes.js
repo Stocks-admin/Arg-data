@@ -41,7 +41,6 @@ stocks.get("/current-value/:symbol", async (req, res) => {
     }
     res.status(200).json(stock);
   } catch (error) {
-    console.log(error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -64,7 +63,6 @@ stocks.get("/stock-on-date/:symbol", async (req, res) => {
       throw new Error("Invalid date");
     }
     const stock = await getStockValueOnDate(symbol, market, date);
-    console.log(stock);
     if (!stock) {
       throw new Error("No stock value found");
     }

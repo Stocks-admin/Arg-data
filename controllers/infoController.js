@@ -7,6 +7,7 @@ import {
 } from "../helpers/iolHelper.js";
 import moment from "moment-timezone";
 import { getLastDollarValue } from "./dollarController.js";
+import { stockConnection } from "../utils/stockConnections.js";
 
 //Instantiate prisma client
 const prisma = new PrismaClient();
@@ -100,7 +101,20 @@ export async function fetchLastStockValue(symbol, market = "nASDAQ") {
   if (!isNaN(resp?.price)) {
     const isStockLoaded = await prisma.item.findFirst({
       where: {
-        stock_symbol: symbol,
+        OR: [
+          {
+            stock_symbol: symbol,
+            market,
+          },
+          {
+            bond_symbol: symbol,
+            market,
+          },
+          {
+            currency_symbol: symbol,
+            market,
+          },
+        ],
         date: {
           gte: moment
             .tz("America/Argentina/Buenos_Aires")
@@ -115,27 +129,59 @@ export async function fetchLastStockValue(symbol, market = "nASDAQ") {
     });
     let newStock;
     if (!isStockLoaded) {
+      const item = await prisma.item.findFirst({
+        where: {
+          OR: [
+            {
+              stock_symbol: symbol,
+              market,
+            },
+            {
+              bond_symbol: symbol,
+              market,
+            },
+            {
+              currency_symbol: symbol,
+              market,
+            },
+          ],
+        },
+      });
+
+      const type = item?.stock_symbol
+        ? "Stock"
+        : item?.bond_symbol
+        ? "Bond"
+        : "Currency";
+
+      const connection = stockConnection(symbol);
+
       newStock = await prisma.item.create({
         data: {
           value: resp.price,
           date: moment().toDate(),
-          type: "Stock",
-          Organization: {
-            connectOrCreate: {
-              where: {
-                symbol,
-              },
-              create: {
-                symbol,
-              },
-            },
-          },
+          type,
+          market: market.toUpperCase(),
+          ...connection[type],
         },
       });
     } else {
       newStock = await prisma.item.updateMany({
         where: {
-          stock_symbol: symbol,
+          OR: [
+            {
+              stock_symbol: symbol,
+              market,
+            },
+            {
+              bond_symbol: symbol,
+              market,
+            },
+            {
+              currency_symbol: symbol,
+              market,
+            },
+          ],
           date: {
             gte: moment
               .tz("America/Argentina/Buenos_Aires")
@@ -154,7 +200,7 @@ export async function fetchLastStockValue(symbol, market = "nASDAQ") {
       });
     }
     if ((newStock?.count && newStock.count > 0) || newStock?.date) {
-      return { value: resp.price, date: new Date() };
+      return { value: resp.price, date: new Date(), type: newStock.type };
     } else {
       throw new Error("Error fetching stock value");
     }
@@ -163,26 +209,25 @@ export async function fetchLastStockValue(symbol, market = "nASDAQ") {
   }
 }
 
-export async function fetchSymbolValueOnDate(symbol, market = "nASDAQ", date) {
+export async function fetchSymbolValueOnDate(
+  symbol,
+  market = "nASDAQ",
+  type = "Stock",
+  date
+) {
   try {
     const resp = await fetchSymbolPriceIOLOnDate(symbol, market, date);
     if (isNaN(resp?.price)) throw new Error("Error fetching stock value");
+
+    const connection = stockConnection(symbol);
+
     let newStock = await prisma.item.create({
       data: {
         value: resp?.price,
         date: moment(date).toDate(),
-        type: "Stock",
+        type,
         market: market.toUpperCase(),
-        Organization: {
-          connectOrCreate: {
-            where: {
-              symbol,
-            },
-            create: {
-              symbol,
-            },
-          },
-        },
+        ...connection[type],
       },
     });
 

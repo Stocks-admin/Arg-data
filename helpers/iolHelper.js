@@ -147,11 +147,12 @@ export async function fetchSymbolPriceIOLOnDate(
 
     let dateToSearch = date;
 
-    if (moment(date).weekday() === 6) {
+    if (moment(date).tz("America/Argentina/Buenos_Aires").weekday() === 6) {
       dateToSearch = moment(date).weekday(5).format("YYYY-MM-DD");
     }
-    if (moment(date).weekday() === 0) {
+    if (moment(date).tz("America/Argentina/Buenos_Aires").weekday() === 0) {
       dateToSearch = moment(date)
+        .tz("America/Argentina/Buenos_Aires")
         .subtract(1, "day")
         .weekday(5)
         .format("YYYY-MM-DD");
@@ -170,8 +171,6 @@ export async function fetchSymbolPriceIOLOnDate(
       }
     );
     if (resp.data.length > 0 && resp.data[0].ultimoPrecio) {
-      console.log("RESP", resp.data[0]);
-      console.log("DATE", dateToSearch, date);
       if (resp.data[0].moneda === "peso_Argentino") {
         const { value: dollar } = await getDollarValueOnDate(date);
         return { price: resp.data[0].ultimoPrecio / dollar };
@@ -182,7 +181,6 @@ export async function fetchSymbolPriceIOLOnDate(
       throw new Error("No se encontró precio");
     }
   } catch (error) {
-    console.log(error);
     throw new Error(error);
   }
 }
