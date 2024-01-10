@@ -11,7 +11,20 @@ const prisma = new PrismaClient();
 export async function getLastStockValue(symbol, market = "nASDAQ") {
   let lastStock = await prisma.item.findFirst({
     where: {
-      stock_symbol: symbol,
+      OR: [
+        {
+          stock_symbol: symbol,
+          market,
+        },
+        {
+          bond_symbol: symbol,
+          market,
+        },
+        {
+          currency_symbol: symbol,
+          market,
+        },
+      ],
     },
     select: {
       value: true,
@@ -24,6 +37,17 @@ export async function getLastStockValue(symbol, market = "nASDAQ") {
           logo: true,
         },
       },
+      Bond: {
+        select: {
+          symbol: true,
+        },
+      },
+      Currency: {
+        select: {
+          symbol: true,
+          country: true,
+        },
+      },
     },
     orderBy: {
       date: "desc",
@@ -33,8 +57,9 @@ export async function getLastStockValue(symbol, market = "nASDAQ") {
     lastStock = await prisma.item.create({
       data: {
         value: 0,
-        date: new Date(),
+        date: moment().toDate(),
         type: "Stock",
+        market,
         Organization: {
           connectOrCreate: {
             where: {
@@ -62,7 +87,10 @@ export async function getLastStockValue(symbol, market = "nASDAQ") {
   return {
     value,
     date: moment(date).tz("America/Argentina/Buenos_Aires").format(),
+    type: lastStock.type,
     organization: lastStock.Organization,
+    bond: lastStock.Bond,
+    currency: lastStock.Currency,
   };
 }
 
@@ -70,14 +98,26 @@ export async function getStockValueOnDate(symbol, market = "NASDAQ", date) {
   try {
     let symbolValue = await prisma.item.findFirst({
       where: {
-        stock_symbol: symbol,
-        market,
+        OR: [
+          {
+            stock_symbol: symbol,
+            market,
+          },
+          {
+            bond_symbol: symbol,
+            market,
+          },
+          {
+            currency_symbol: symbol,
+            market,
+          },
+        ],
         date: {
-          gte: moment
+          gte: moment(date)
             .tz("America/Argentina/Buenos_Aires")
             .startOf("day")
             .toDate(),
-          lte: moment
+          lte: moment(date)
             .tz("America/Argentina/Buenos_Aires")
             .endOf("day")
             .toDate(),
@@ -87,19 +127,59 @@ export async function getStockValueOnDate(symbol, market = "NASDAQ", date) {
 
     if (!symbolValue) {
       try {
-        const symbolOnDate = await fetchSymbolValueOnDate(symbol, market, date);
+        const item = await prisma.item.findFirst({
+          where: {
+            OR: [
+              {
+                stock_symbol: symbol,
+                market,
+              },
+              {
+                bond_symbol: symbol,
+                market,
+              },
+              {
+                currency_symbol: symbol,
+                market,
+              },
+            ],
+          },
+        });
+
+        const type = item.type;
+
+        const symbolOnDate = await fetchSymbolValueOnDate(
+          symbol,
+          market,
+          type,
+          date
+        );
         if (symbolOnDate) {
           symbolValue = {
             value: symbolOnDate.value,
             date: moment(symbolOnDate.date)
               .tz("America/Argentina/Buenos_Aires")
               .format(),
+            type,
           };
         }
       } catch (error) {
         const nearestValue = await prisma.item.findFirst({
           where: {
-            stock_symbol: symbol,
+            OR: [
+              {
+                stock_symbol: symbol,
+                market,
+              },
+              {
+                bond_symbol: symbol,
+                market,
+              },
+              {
+                currency_symbol: symbol,
+                market,
+              },
+            ],
             market,
             date: {
               lte: moment(date).toDate(),
@@ -119,6 +199,7 @@ export async function getStockValueOnDate(symbol, market = "NASDAQ", date) {
           date: moment(nearestValue.date)
             .tz("America/Argentina/Buenos_Aires")
             .format(),
+          type: nearestValue.type,
         };
       }
     }
@@ -129,13 +210,28 @@ export async function getStockValueOnDate(symbol, market = "NASDAQ", date) {
   }
 }
 
-export async function getStockValueOnDateRange(symbol, dateStart, dateEnd) {
-  if (!dateEnd) {
-    dateEnd = new Date();
-  }
+export async function getStockValueOnDateRange(
+  symbol,
+  market = "nASDAQ",
+  dateStart,
+  dateEnd = moment().format()
+) {
   const stocksValue = await prisma.item.findMany({
     where: {
-      stock_symbol: symbol,
+      OR: [
+        {
+          stock_symbol: symbol,
+          market,
+        },
+        {
+          bond_symbol: symbol,
+          market,
+        },
+        {
+          currency_symbol: symbol,
+          market,
+        },
+      ],
       date: {
         gte: moment(dateStart).toDate(),
         lte: moment(dateEnd).toDate(),
@@ -171,7 +267,17 @@ async function symbolInfo(symbol) {
 export async function getSymbolInfo(symbol) {
   const symbolType = await prisma.item.findFirst({
     where: {
-      stock_symbol: symbol,
+      OR: [
+        {
+          stock_symbol: symbol,
+        },
+        {
+          bond_symbol: symbol,
+        },
+        {
+          currency_symbol: symbol,
+        },
+      ],
     },
   });
   if (!symbolType) {
@@ -201,7 +307,6 @@ export async function getRandomStocks(limit = 10) {
       },
     });
   } catch (error) {
-    console.log(error);
     throw new Error(error);
   }
 }
@@ -219,7 +324,6 @@ export async function filterStocks(symbols) {
       },
     });
   } catch (error) {
-    console.log(error);
     throw new Error(error);
   }
 }

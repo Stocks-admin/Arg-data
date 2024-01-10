@@ -58,16 +58,16 @@ model Organization {
 }
 
 model Currency {
-  symbol  String @id
+  symbol  String  @id
   name    String
-  country String
+  country String?
 
   Items Item[]
 }
 
 model Bond {
-  symbol  String @id
-  country String
+  symbol  String  @id
+  country String?
   items   Item[]
 }
 

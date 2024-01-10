@@ -21,7 +21,16 @@ export async function getLastUvaValue() {
 export async function getUvaValueOnDate(date) {
   const uvaValue = await prisma.uva.findFirst({
     where: {
-      date: moment(date, "YYYY-MM-DD").toDate(),
+      date: {
+        gte: moment
+          .tz(date, "America/Argentina/Buenos_Aires")
+          .startOf("day")
+          .toDate(),
+        lte: moment
+          .tz(date, "America/Argentina/Buenos_Aires")
+          .endOf("day")
+          .toDate(),
+      },
     },
   });
   if (!uvaValue) return null;
@@ -35,8 +44,14 @@ export async function getUvaValueOnDateRange(dateStart, dateEnd) {
   const uvaValue = await prisma.uva.findMany({
     where: {
       date: {
-        gte: moment(dateStart, "YYYY-MM-DD").toDate(),
-        lte: moment(dateEnd, "YYYY-MM-DD").toDate(),
+        gte: moment(dateStart)
+          .tz("America/Argentina/Buenos_Aires")
+          .startOf("day")
+          .toDate(),
+        lte: moment(dateEnd)
+          .tz("America/Argentina/Buenos_Aires")
+          .endOf("day")
+          .toDate(),
       },
     },
   });

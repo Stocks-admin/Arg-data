@@ -30,7 +30,6 @@ metrics.get("/uva-on-date", async (req, res) => {
       throw new Error("No date provided");
     }
     //Check if date is valid and before yesterday
-    console.log(date);
     if (
       !moment(date).isValid() ||
       moment(date).isAfter(moment().subtract(1, "days"))
