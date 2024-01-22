@@ -327,3 +327,29 @@ export async function filterStocks(symbols) {
     throw new Error(error);
   }
 }
+
+export async function updateBonds() {
+  try {
+    // Obtener todos los items que sean bonos
+    const bonos = await prisma.item.findMany({
+      where: {
+        type: "Bond", // Asumiendo que 'Bono' es el valor correcto para identificar bonos
+      },
+    });
+
+    // Actualizar cada bono dividiendo el precio por 100
+    for (const bono of bonos) {
+      await prisma.item.update({
+        where: { id: bono.id },
+        data: {
+          value: bono.value / 100,
+        },
+      });
+    }
+
+    console.log("Actualización exitosa.");
+    return true;
+  } catch (error) {
+    console.error("Error al actualizar bonos:", error);
+  }
+}

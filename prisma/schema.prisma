@@ -68,6 +68,7 @@ model Currency {
 model Bond {
   symbol  String  @id
   country String?
+  batch   Int?    @default(100)
   items   Item[]
 }
 

@@ -12,6 +12,7 @@ import dollar from "./routes/dollarRoutes.js";
 import stocks from "./routes/stockRoutes.js";
 import { PrismaClient } from "@prisma/client";
 import cors from "cors";
+import { updateBonds } from "./controllers/stocksController.js";
 
 const app = express();
 
@@ -77,6 +78,20 @@ app.get("/generate-symbols", async (req, res) => {
       res.status(500).send("Error generating mock meli");
     }
   } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
+app.get("/updateBonds", async (req, res) => {
+  try {
+    const resp = await updateBonds();
+    if (resp) {
+      res.send("Bonds updated successfully");
+    } else {
+      res.status(500).send("Error updating bonds");
+    }
+  } catch (error) {
+    console.log(error);
     res.status(500).send(error.message);
   }
 });

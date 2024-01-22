@@ -105,11 +105,12 @@ export const fetchSymbolPriceIOL = async (symbol, mercado = "nASDAQ") => {
         },
       }
     );
+    const lote = resp?.data?.lote || 1;
     if (resp?.data?.moneda === "peso_Argentino" && resp?.data?.ultimoPrecio) {
       const { value: dollar } = await getLastDollarValue();
-      return { price: resp?.data?.ultimoPrecio / dollar };
+      return { price: resp?.data?.ultimoPrecio / dollar / lote };
     } else if (!isNaN(resp?.data?.ultimoPrecio)) {
-      return { price: resp?.data?.ultimoPrecio };
+      return { price: resp?.data?.ultimoPrecio / lote };
     } else {
       throw new Error("No se encontró precio");
     }

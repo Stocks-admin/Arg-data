@@ -148,4 +148,24 @@ stocks.post("/verifyStocks", async (req, res) => {
   }
 });
 
+stocks.get("/batch", async (req, res) => {
+  try {
+    const { symbol } = req.query;
+    if (!symbol) {
+      throw new Error("No symbol provided");
+    }
+    const stock = await getSymbolInfo(symbol);
+    if (!stock) {
+      throw new Error("No stock found");
+    }
+    let batch = 1;
+    if (stock.batch) {
+      batch = stock?.batch;
+    }
+    res.status(200).json({ value: batch });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 export default stocks;
