@@ -20,6 +20,7 @@ const corsOptions = {
   origin: [
     "https://development.d2jiei2auzx96a.amplifyapp.com",
     "https://production.d2jiei2auzx96a.amplifyapp.com",
+    "https://butterstocks.site",
     "http://localhost:3000",
     "http://localhost:3001",
   ],
