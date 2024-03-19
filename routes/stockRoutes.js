@@ -36,7 +36,7 @@ stocks.get("/current-value/:symbol", async (req, res) => {
     if (!symbol) {
       throw new Error("No symbol provided");
     }
-    const stock = await getLastStockValue(symbol, market);
+    const stock = await getLastStockValue(symbol, market.toUpperCase());
     if (!stock) {
       throw new Error("No stock value found");
     }
@@ -92,7 +92,7 @@ stocks.get("/stock-on-date/:symbol", async (req, res) => {
     ) {
       throw new Error("Invalid date");
     }
-    const stock = await getStockValueOnDate(symbol, market, date);
+    const stock = await getStockValueOnDate(symbol, market.toUpperCase(), date);
     if (!stock) {
       throw new Error("No stock value found");
     }
