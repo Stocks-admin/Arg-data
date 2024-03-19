@@ -2,6 +2,7 @@ import express from "express";
 import moment from "moment";
 import {
   filterStocks,
+  getCurrentMultiStockValue,
   getLastStockValue,
   getRandomStocks,
   getStockValueOnDate,
@@ -40,6 +41,35 @@ stocks.get("/current-value/:symbol", async (req, res) => {
       throw new Error("No stock value found");
     }
     res.status(200).json(stock);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+stocks.get("/multi-current-value", async (req, res) => {
+  try {
+    const { symbols, markets } = req.query;
+    if (!symbols || !markets) {
+      throw new Error("No symbols provided");
+    }
+    const symbolsArray = symbols.split(",");
+    const marketsArray = markets.split(",");
+    if (
+      !symbolsArray ||
+      !Array.isArray(symbolsArray) ||
+      symbolsArray.length === 0 ||
+      !marketsArray ||
+      !Array.isArray(marketsArray) ||
+      marketsArray.length === 0 ||
+      symbolsArray.length !== marketsArray.length
+    ) {
+      throw new Error("No stocks provided");
+    }
+    const stocks = await getCurrentMultiStockValue(symbolsArray, marketsArray);
+    if (!stocks) {
+      throw new Error("No stocks found");
+    }
+    res.status(200).json(stocks);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

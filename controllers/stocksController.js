@@ -8,7 +8,7 @@ import moment from "moment";
 
 const prisma = new PrismaClient();
 
-export async function getLastStockValue(symbol, market = "nASDAQ") {
+export async function getLastStockValue(symbol, market = "NASDAQ") {
   let lastStock = await prisma.item.findFirst({
     where: {
       OR: [
@@ -26,72 +26,108 @@ export async function getLastStockValue(symbol, market = "nASDAQ") {
         },
       ],
     },
-    select: {
-      value: true,
-      date: true,
-      type: true,
-      Organization: {
-        select: {
-          symbol: true,
-          org_category: true,
-          logo: true,
-        },
-      },
-      Bond: {
-        select: {
-          symbol: true,
-        },
-      },
-      Currency: {
-        select: {
-          symbol: true,
-          country: true,
-        },
-      },
+    include: {
+      Bond: true,
+      Currency: true,
+      Organization: true,
     },
     orderBy: {
       date: "desc",
     },
   });
-  if (!lastStock) {
-    lastStock = await prisma.item.create({
-      data: {
-        value: 0,
-        date: moment().toDate(),
-        type: "Stock",
-        market,
-        Organization: {
-          connectOrCreate: {
-            where: {
-              symbol,
-            },
-            create: {
-              symbol,
-            },
-          },
-        },
-      },
-    });
-  }
+
   let dollarValue = {
     value: lastStock?.value,
     date: moment(lastStock?.date).tz("America/Argentina/Buenos_Aires").format(),
   };
-  if (!isToday(lastStock.date)) {
-    dollarValue = await fetchLastStockValue(symbol, market);
+  if (!lastStock || !isToday(lastStock.date)) {
+    dollarValue = await fetchLastStockValue(
+      symbol,
+      lastStock?.market || market
+    );
     if (!dollarValue) {
       throw new Error("No dollar value found");
     }
+    let data = {
+      type: "Stock",
+      Organization: {
+        connect: {
+          symbol,
+        },
+      },
+    };
+
+    const isBond = await prisma.bond.findFirst({
+      where: {
+        symbol,
+      },
+    });
+    if (isBond) {
+      data = {
+        type: "Bond",
+        Bond: {
+          connect: {
+            symbol,
+          },
+        },
+      };
+    }
+
+    const isCurrency = await prisma.currency.findFirst({
+      where: {
+        symbol,
+      },
+    });
+    if (isCurrency) {
+      data = {
+        type: "Currency",
+        Currency: {
+          connect: {
+            symbol,
+          },
+        },
+      };
+    }
+
+    lastStock = await prisma.item.create({
+      data: {
+        value: dollarValue.value,
+        date: moment().toDate(),
+        market,
+        ...data,
+      },
+    });
   }
-  const { value, date } = dollarValue;
   return {
-    value,
-    date: moment(date).tz("America/Argentina/Buenos_Aires").format(),
+    value: dollarValue.value,
+    date: moment(lastStock.date).tz("America/Argentina/Buenos_Aires").format(),
     type: lastStock.type,
     organization: lastStock.Organization,
     bond: lastStock.Bond,
     currency: lastStock.Currency,
+    symbol:
+      lastStock.stock_symbol ||
+      lastStock.bond_symbol ||
+      lastStock.currency_symbol,
   };
+}
+
+export async function getCurrentMultiStockValue(symbols, markets) {
+  try {
+    const stocksValue = await Promise.all(
+      symbols.map(async (symbol, index) => {
+        try {
+          return await getLastStockValue(symbol, markets[index]);
+        } catch (error) {
+          console.error(error);
+          return {};
+        }
+      })
+    );
+    return stocksValue;
+  } catch (error) {
+    throw new Error(error.message || "Error fetching symbol value");
+  }
 }
 
 export async function getStockValueOnDate(symbol, market = "NASDAQ", date) {
