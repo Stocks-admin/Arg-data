@@ -40,6 +40,7 @@ export async function fetchLastDolarValue() {
             value: dollar.data.venta,
             date: moment.tz("America/Argentina/Buenos_Aires").toDate(),
             type: "Currency",
+            price_currency: "ARS",
             Currency: {
               connect: {
                 symbol: "USD",
@@ -72,6 +73,24 @@ export async function fetchLastDolarValue() {
     }
   } catch (error) {
     throw new Error("Error fetching dollar value");
+  }
+}
+
+export async function fetchLastCurrencyValue(symbol) {
+  try {
+    const dollar = await axios.get("https://dolarapi.com/v1/dolares/bolsa");
+    if (dollar?.data?.venta) {
+      return {
+        value: dollar?.data?.venta,
+        date: moment(dollar?.data?.fechaActualizacion)
+          .tz("America/Argentina/Buenos_Aires")
+          .format(),
+      };
+    } else {
+      throw new Error("Error fetching dollar value");
+    }
+  } catch (error) {
+    throw new Error("Error fetching currency value");
   }
 }
 
