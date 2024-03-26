@@ -2,14 +2,28 @@ import express from "express";
 import moment from "moment";
 import {
   filterStocks,
+  getAllStocks,
   getCurrentMultiStockValue,
   getLastStockValue,
   getRandomStocks,
   getStockValueOnDate,
   getStockValueOnDateRange,
   getSymbolInfo,
+  getSymbolPrices,
+  updateStockImage,
+  updateStockPrice,
 } from "../controllers/stocksController.js";
 import { searchItem } from "../controllers/itemController.js";
+import multer from "multer";
+
+const upload = multer(
+  {
+    limits: {
+      fileSize: 5 * 1024 * 1024, // no larger than 5mb
+    },
+  },
+  "image"
+);
 
 const stocks = express.Router();
 
@@ -143,6 +157,94 @@ stocks.get("/random-stocks", async (req, res) => {
   }
 });
 
+stocks.get("/allStocks", async (req, res) => {
+  try {
+    console.log("entro");
+    const stocks = await getAllStocks();
+    res.status(200).json(stocks);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+stocks.get("/batch", async (req, res) => {
+  try {
+    const { symbol } = req.query;
+    if (!symbol) {
+      throw new Error("No symbol provided");
+    }
+    const stock = await getSymbolInfo(symbol);
+    if (!stock) {
+      throw new Error("No stock found");
+    }
+    let batch = 1;
+    if (stock.batch) {
+      batch = stock?.batch;
+    }
+    res.status(200).json({ value: batch });
+  } catch (error) {
+    res.status(200).json({ value: 1 });
+  }
+});
+
+stocks.put("/organizationImage", upload.single("file"), async (req, res) => {
+  try {
+    const { symbol } = req.body;
+    if (!symbol) {
+      throw new Error("No symbol provided");
+    }
+    const { file } = req;
+    if (!file) {
+      return res.status(500).send({ error: errorMessages.invalidFile });
+    }
+
+    const stock = await updateStockImage(symbol, file);
+    console.log("FILE", file);
+    res.status(200).json(stock);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+stocks.get("/:symbol/allPrices", async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    if (!symbol) {
+      throw new Error("No symbol provided");
+    }
+    const stock = await getSymbolPrices(symbol);
+    if (!stock) {
+      throw new Error("No stock found");
+    }
+    res.status(200).json(stock.prices);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+stocks.put("/:symbol/price", async (req, res) => {
+  try {
+    const { value, date, market } = req.body;
+    const { symbol } = req.params;
+    if (!symbol) {
+      throw new Error("No symbol provided");
+    }
+    const stock = await getSymbolInfo(symbol);
+    if (!stock) {
+      throw new Error("No stock found");
+    }
+    if (!value || !date || !market) {
+      throw new Error("No price or date or market provided");
+    }
+    const resp = updateStockPrice(symbol, market, value, date);
+    res.status(200).json(resp);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 stocks.get("/:symbol", async (req, res) => {
   try {
     const { symbol } = req.params;
@@ -175,26 +277,6 @@ stocks.post("/verifyStocks", async (req, res) => {
     res.status(200).json([...new Set(filteredSymbols)]);
   } catch (error) {
     res.status(500).json({ message: error.message });
-  }
-});
-
-stocks.get("/batch", async (req, res) => {
-  try {
-    const { symbol } = req.query;
-    if (!symbol) {
-      throw new Error("No symbol provided");
-    }
-    const stock = await getSymbolInfo(symbol);
-    if (!stock) {
-      throw new Error("No stock found");
-    }
-    let batch = 1;
-    if (stock.batch) {
-      batch = stock?.batch;
-    }
-    res.status(200).json({ value: batch });
-  } catch (error) {
-    res.status(200).json({ value: 1 });
   }
 });
 

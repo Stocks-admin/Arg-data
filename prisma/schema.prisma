@@ -23,11 +23,12 @@ model Uva {
 }
 
 model Item {
-  id     Int       @id @default(autoincrement())
-  type   ItemTypes
-  date   DateTime
-  market Market?
-  value  Float
+  id             Int          @id @default(autoincrement())
+  type           ItemTypes
+  date           DateTime
+  market         Market?
+  value          Float
+  price_currency ItemCurrency @default(USD)
 
   stock_symbol    String?
   Organization    Organization? @relation(fields: [stock_symbol], references: [symbol])
@@ -40,6 +41,11 @@ model Item {
   @@index([currency_symbol], name: "currency_symbol")
   @@index([bond_symbol], name: "bond_symbol")
   @@index([date], name: "date")
+}
+
+enum ItemCurrency {
+  ARS
+  USD
 }
 
 enum ItemTypes {
@@ -58,18 +64,20 @@ model Organization {
 }
 
 model Currency {
-  symbol  String  @id
+  symbol  String   @id
   name    String
-  country String?
+  country country? @relation(fields: [countryId], references: [id])
 
-  Items Item[]
+  Items     Item[]
+  countryId Int?
 }
 
 model Bond {
-  symbol  String  @id
-  country String?
-  batch   Int?    @default(100)
-  items   Item[]
+  symbol    String   @id
+  country   country? @relation(fields: [countryId], references: [id])
+  batch     Int?     @default(100)
+  items     Item[]
+  countryId Int?
 }
 
 enum Market {
@@ -90,4 +98,12 @@ model iol_token {
   refresh_token String
   created_at    DateTime @default(now())
   expires_at    DateTime
+}
+
+model country {
+  id       Int        @id @default(autoincrement())
+  name     String
+  flag     String?
+  Currency Currency[]
+  Bond     Bond[]
 }

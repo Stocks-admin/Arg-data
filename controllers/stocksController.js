@@ -1,34 +1,44 @@
 import { PrismaClient } from "@prisma/client";
 import {
+  fetchLastCurrencyValue,
   fetchLastStockValue,
   fetchSymbolValueOnDate,
 } from "./infoController.js";
 import { isToday } from "../helpers/dateHelpers.js";
 import moment from "moment";
+import axios from "axios";
 
 const prisma = new PrismaClient();
 
 export async function getLastStockValue(symbol, market = "NASDAQ") {
+  const marketName = market !== "" ? market.toUpperCase() : "NASDAQ";
   let lastStock = await prisma.item.findFirst({
     where: {
       OR: [
         {
           stock_symbol: symbol,
-          market,
+          market: marketName,
         },
         {
           bond_symbol: symbol,
-          market,
+          market: marketName,
         },
         {
           currency_symbol: symbol,
-          market,
         },
       ],
     },
     include: {
-      Bond: true,
-      Currency: true,
+      Bond: {
+        include: {
+          country: true,
+        },
+      },
+      Currency: {
+        include: {
+          country: true,
+        },
+      },
       Organization: true,
     },
     orderBy: {
@@ -41,10 +51,12 @@ export async function getLastStockValue(symbol, market = "NASDAQ") {
     date: moment(lastStock?.date).tz("America/Argentina/Buenos_Aires").format(),
   };
   if (!lastStock || !isToday(lastStock.date)) {
-    dollarValue = await fetchLastStockValue(
-      symbol,
-      lastStock?.market || market
-    );
+    if (lastStock?.type && lastStock.type !== "Currency") {
+      dollarValue = await fetchLastStockValue(
+        symbol,
+        lastStock?.market || market
+      );
+    }
     if (!dollarValue) {
       throw new Error("No dollar value found");
     }
@@ -79,8 +91,11 @@ export async function getLastStockValue(symbol, market = "NASDAQ") {
       },
     });
     if (isCurrency) {
+      const price = await fetchLastCurrencyValue(symbol);
       data = {
         type: "Currency",
+        value: price.value,
+        price_currency: "ARS",
         Currency: {
           connect: {
             symbol,
@@ -105,6 +120,7 @@ export async function getLastStockValue(symbol, market = "NASDAQ") {
     organization: lastStock.Organization,
     bond: lastStock.Bond,
     currency: lastStock.Currency,
+    price_currency: lastStock?.price_currency || "USD",
     symbol:
       lastStock.stock_symbol ||
       lastStock.bond_symbol ||
@@ -387,5 +403,105 @@ export async function updateBonds() {
     return true;
   } catch (error) {
     console.error("Error al actualizar bonos:", error);
+  }
+}
+
+export async function getAllStocks() {
+  try {
+    return await prisma.organization.findMany({
+      orderBy: {
+        symbol: "asc",
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    throw new Error(error);
+  }
+}
+
+export async function updateStockImage(symbol, image) {
+  try {
+    const stock = await prisma.organization.findFirst({
+      where: {
+        symbol,
+      },
+    });
+    if (!stock) {
+      throw new Error("No stock found");
+    }
+    const fileData = Buffer.from(image.buffer);
+    await axios.put(
+      `${process.env.S3_BUCKET_UPLOAD_URL}${stock.symbol}.jpeg`,
+      fileData,
+      {
+        headers: {
+          "Content-Type": "image/jpeg",
+          Authorization: process.env.S3_API_KEY,
+        },
+      }
+    );
+    await prisma.organization.update({
+      where: {
+        symbol,
+      },
+      data: {
+        logo: `${process.env.S3_BUCKET_URL}${stock.symbol}.jpeg`,
+      },
+    });
+    return stock;
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+export async function getSymbolPrices(symbol) {
+  try {
+    const stock = await prisma.organization.findFirst({
+      where: {
+        symbol,
+      },
+    });
+    if (!stock) {
+      throw new Error("No stock found");
+    }
+    const prices = await prisma.item.findMany({
+      where: {
+        stock_symbol: symbol,
+      },
+      orderBy: {
+        date: "desc",
+      },
+    });
+    return {
+      stock,
+      prices,
+    };
+  } catch (error) {
+    throw new Error(error);
+  }
+}
+
+export async function updateStockPrice(symbol, market, value, date) {
+  try {
+    const start = moment(date).utc().startOf("day").toDate();
+    const end = moment(date).utc().endOf("day").toDate();
+
+    const stock = await prisma.item.updateMany({
+      where: {
+        date: {
+          gte: start,
+          lte: end,
+        },
+        market,
+        stock_symbol: symbol,
+      },
+      data: {
+        value,
+      },
+    });
+
+    return stock;
+  } catch (error) {
+    throw new Error(error);
   }
 }
