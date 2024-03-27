@@ -159,7 +159,6 @@ stocks.get("/random-stocks", async (req, res) => {
 
 stocks.get("/allStocks", async (req, res) => {
   try {
-    console.log("entro");
     const stocks = await getAllStocks();
     res.status(200).json(stocks);
   } catch (error) {
@@ -178,6 +177,7 @@ stocks.get("/batch", async (req, res) => {
     if (!stock) {
       throw new Error("No stock found");
     }
+    console.log("STOCK", stock);
     let batch = 1;
     if (stock.batch) {
       batch = stock?.batch;

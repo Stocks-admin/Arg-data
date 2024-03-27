@@ -102,7 +102,7 @@ model iol_token {
 
 model country {
   id       Int        @id @default(autoincrement())
-  name     String
+  name     String     @unique
   flag     String?
   Currency Currency[]
   Bond     Bond[]

@@ -19,7 +19,16 @@ export const stockConnection = (symbol) => ({
         },
         create: {
           symbol,
-          country: "Argentina",
+          country: {
+            connectOrCreate: {
+              where: {
+                name: "Argentina",
+              },
+              create: {
+                name: "Argentina",
+              },
+            },
+          },
         },
       },
     },
