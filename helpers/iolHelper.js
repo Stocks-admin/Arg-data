@@ -6,6 +6,7 @@ import {
   getDollarValueOnDate,
   getLastDollarValue,
 } from "../controllers/dollarController.js";
+import iolInstance from "../utils/IOLInterceptor.js";
 
 const db = new PrismaClient();
 
@@ -76,34 +77,10 @@ export const refreshIOL = async () => {
 
 export const fetchSymbolPriceIOL = async (symbol, mercado = "nASDAQ") => {
   try {
-    let access_token, expires_at;
-    const currentToken = await db.iol_token.findUnique({
-      where: {
-        token_id: 1,
-      },
-    });
-
-    if (!currentToken?.access_token || !currentToken?.expires_at) {
-      const data = await loginToIOL();
-      access_token = data.access_token;
-      expires_at = data.expires_at;
-    } else {
-      access_token = currentToken.access_token;
-      expires_at = currentToken.expires_at;
-    }
-
-    if (moment().isAfter(moment(expires_at)))
-      access_token = (await loginToIOL()).access_token;
-
     const symbolMarket = parseMarket[mercado.toUpperCase()] || "nASDAQ";
 
-    const resp = await axios.get(
-      `https://api.invertironline.com/api/v2/${symbolMarket}/Titulos/${symbol}/Cotizacion`,
-      {
-        headers: {
-          Authorization: `bearer ${access_token}`,
-        },
-      }
+    const resp = await iolInstance.get(
+      `https://api.invertironline.com/api/v2/${symbolMarket}/Titulos/${symbol}/Cotizacion`
     );
     const lote = resp?.data?.lote || 1;
     if (resp?.data?.moneda === "peso_Argentino" && resp?.data?.ultimoPrecio) {
@@ -127,24 +104,6 @@ export async function fetchSymbolPriceIOLOnDate(
 ) {
   try {
     const symbolMarket = parseMarket[market.toUpperCase()] || "nASDAQ";
-    let access_token, expires_at;
-    const currentToken = await db.iol_token.findUnique({
-      where: {
-        token_id: 1,
-      },
-    });
-
-    if (!currentToken?.access_token || !currentToken?.expires_at) {
-      const data = await loginToIOL();
-      access_token = data.access_token;
-      expires_at = data.expires_at;
-    } else {
-      access_token = currentToken.access_token;
-      expires_at = currentToken.expires_at;
-    }
-
-    if (moment().isAfter(moment(expires_at)))
-      access_token = (await loginToIOL()).access_token;
 
     let dateToSearch = date;
 
@@ -159,17 +118,12 @@ export async function fetchSymbolPriceIOLOnDate(
         .format("YYYY-MM-DD");
     }
 
-    const resp = await axios.get(
+    const resp = await iolInstance.get(
       `https://api.invertironline.com/api/v2/${symbolMarket}/Titulos/${symbol}/Cotizacion/seriehistorica/${moment(
         dateToSearch
       ).format("YYYY-MM-DD")}/${moment(dateToSearch)
         .add(1, "day")
-        .format("YYYY-MM-DD")}/sinAjustar`,
-      {
-        headers: {
-          Authorization: `bearer ${access_token}`,
-        },
-      }
+        .format("YYYY-MM-DD")}/sinAjustar`
     );
     if (resp.data.length > 0 && resp.data[0].ultimoPrecio) {
       if (resp.data[0].moneda === "peso_Argentino") {
@@ -193,34 +147,10 @@ export async function fetchSymbolPriceIOLOnDateRange(
   dateEnd
 ) {
   try {
-    let access_token, expires_at;
-    const currentToken = await db.iol_token.findUnique({
-      where: {
-        token_id: 1,
-      },
-    });
-
-    if (!currentToken?.access_token || !currentToken?.expires_at) {
-      const data = await loginToIOL();
-      access_token = data.access_token;
-      expires_at = data.expires_at;
-    } else {
-      access_token = currentToken.access_token;
-      expires_at = currentToken.expires_at;
-    }
-
-    if (moment().isAfter(moment(expires_at)))
-      access_token = (await loginToIOL()).access_token;
-
-    const resp = await axios.get(
+    const resp = await iolInstance.get(
       `https://api.invertironline.com/api/v2/${market}/Titulos/${symbol}/Cotizacion/seriehistorica/${moment(
         dateStart
-      ).format("YYYY-MM-DD")}/${moment(dateEnd).format("YYYY-MM-DD")}`,
-      {
-        headers: {
-          Authorization: `bearer ${access_token}`,
-        },
-      }
+      ).format("YYYY-MM-DD")}/${moment(dateEnd).format("YYYY-MM-DD")}`
     );
     if (resp.data.length > 0) {
       const data = resp.data.map((item) => ({
