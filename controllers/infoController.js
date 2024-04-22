@@ -240,7 +240,7 @@ export async function fetchSymbolValueOnDate(
 
     const connection = stockConnection(symbol);
 
-    let newStock = await prisma.item.create({
+    const created = await prisma.item.create({
       data: {
         value: resp?.price,
         date: moment(date).toDate(),
@@ -249,13 +249,10 @@ export async function fetchSymbolValueOnDate(
         ...connection[type],
       },
     });
-
-    if (newStock?.count && newStock.count > 0 && newStock?.date) {
-      return { value: resp.price, date };
-    } else {
-      throw new Error("Error fetching stock value");
-    }
+    if (created) return { value: resp.price, date, type };
+    else throw new Error("Error fetching stock value");
   } catch (error) {
+    // console.log(error);
     throw new Error(error);
   }
 }
