@@ -177,7 +177,6 @@ stocks.get("/batch", async (req, res) => {
     if (!stock) {
       throw new Error("No stock found");
     }
-    console.log("STOCK", stock);
     let batch = 1;
     if (stock.batch) {
       batch = stock?.batch;

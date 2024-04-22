@@ -106,11 +106,21 @@ export async function fetchSymbolPriceIOLOnDate(
     const symbolMarket = parseMarket[market.toUpperCase()] || "nASDAQ";
 
     let dateToSearch = date;
-
-    if (moment(date).tz("America/Argentina/Buenos_Aires").weekday() === 6) {
+    //If is today, we need to search for yesterday
+    if (
+      moment(date).tz("America/Argentina/Buenos_Aires").format("YYYY-MM-DD") ===
+      moment().tz("America/Argentina/Buenos_Aires").format("YYYY-MM-DD")
+    ) {
+      dateToSearch = moment(date).subtract(1, "day").format("YYYY-MM-DD");
+    }
+    if (
+      moment(dateToSearch).tz("America/Argentina/Buenos_Aires").weekday() === 6
+    ) {
       dateToSearch = moment(date).weekday(5).format("YYYY-MM-DD");
     }
-    if (moment(date).tz("America/Argentina/Buenos_Aires").weekday() === 0) {
+    if (
+      moment(dateToSearch).tz("America/Argentina/Buenos_Aires").weekday() === 0
+    ) {
       dateToSearch = moment(date)
         .tz("America/Argentina/Buenos_Aires")
         .subtract(1, "day")

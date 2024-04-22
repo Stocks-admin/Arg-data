@@ -146,22 +146,135 @@ export async function getCurrentMultiStockValue(symbols, markets) {
   }
 }
 
+// export async function getStockValueOnDate(symbol, market = "NASDAQ", date) {
+//   try {
+//     let symbolValue = await prisma.item.findFirst({
+//       where: {
+//         OR: [
+//           {
+//             stock_symbol: symbol,
+//             market,
+//           },
+//           {
+//             bond_symbol: symbol,
+//             market,
+//           },
+//           {
+//             currency_symbol: symbol,
+//           },
+//         ],
+//         date: {
+//           gte: moment(date)
+//             .tz("America/Argentina/Buenos_Aires")
+//             .startOf("day")
+//             .toDate(),
+//           lte: moment(date)
+//             .tz("America/Argentina/Buenos_Aires")
+//             .endOf("day")
+//             .toDate(),
+//         },
+//       },
+//     });
+
+//     if (!symbolValue) {
+//       try {
+//         const item = await prisma.item.findFirst({
+//           where: {
+//             OR: [
+//               {
+//                 stock_symbol: symbol,
+//                 market,
+//               },
+//               {
+//                 bond_symbol: symbol,
+//                 market,
+//               },
+//               {
+//                 currency_symbol: symbol,
+//               },
+//             ],
+//           },
+//         });
+
+//         const type = item.type;
+
+//         const symbolOnDate = await fetchSymbolValueOnDate(
+//           symbol,
+//           market,
+//           type,
+//           date
+//         );
+//         if (symbolOnDate) {
+//           symbolValue = {
+//             value: symbolOnDate.value,
+//             date: moment(symbolOnDate.date)
+//               .tz("America/Argentina/Buenos_Aires")
+//               .format(),
+//             type,
+//           };
+//         }
+//       } catch (error) {
+//         const nearestValue = await prisma.item.findFirst({
+//           where: {
+//             OR: [
+//               {
+//                 stock_symbol: symbol,
+//                 market,
+//               },
+//               {
+//                 bond_symbol: symbol,
+//                 market,
+//               },
+//               {
+//                 currency_symbol: symbol,
+//               },
+//             ],
+//             market,
+//             date: {
+//               lte: moment(date).toDate(),
+//             },
+//           },
+//           orderBy: {
+//             date: "desc",
+//           },
+//         });
+
+//         if (!nearestValue) {
+//           throw new Error("No value found");
+//         }
+
+//         symbolValue = {
+//           value: nearestValue.value,
+//           date: moment(nearestValue.date)
+//             .tz("America/Argentina/Buenos_Aires")
+//             .format(),
+//           type: nearestValue.type,
+//         };
+//       }
+//     }
+
+//     return symbolValue;
+//   } catch (error) {
+//     throw new Error(error.message || "Error fetching symbol value");
+//   }
+// }
+
 export async function getStockValueOnDate(symbol, market = "NASDAQ", date) {
   try {
-    let symbolValue = await prisma.item.findFirst({
+    const marketName = market !== "" ? market.toUpperCase() : "NASDAQ";
+    let lastStock = await prisma.item.findFirst({
       where: {
         OR: [
           {
             stock_symbol: symbol,
-            market,
+            market: marketName,
           },
           {
             bond_symbol: symbol,
-            market,
+            market: marketName,
           },
           {
             currency_symbol: symbol,
-            market,
           },
         ],
         date: {
@@ -175,89 +288,120 @@ export async function getStockValueOnDate(symbol, market = "NASDAQ", date) {
             .toDate(),
         },
       },
-    });
-
-    if (!symbolValue) {
-      try {
-        const item = await prisma.item.findFirst({
-          where: {
-            OR: [
-              {
-                stock_symbol: symbol,
-                market,
-              },
-              {
-                bond_symbol: symbol,
-                market,
-              },
-              {
-                currency_symbol: symbol,
-                market,
-              },
-            ],
+      include: {
+        Bond: {
+          include: {
+            country: true,
           },
-        });
-
-        const type = item.type;
-
-        const symbolOnDate = await fetchSymbolValueOnDate(
+        },
+        Currency: {
+          include: {
+            country: true,
+          },
+        },
+        Organization: true,
+      },
+      orderBy: {
+        date: "desc",
+      },
+    });
+    let dollarValue = {
+      value: lastStock?.value,
+      date: moment(lastStock?.date)
+        .tz("America/Argentina/Buenos_Aires")
+        .format(),
+    };
+    // console.log("lastStock", lastStock);
+    console.log("INFO", date, lastStock.date);
+    console.log(
+      "IS SAME",
+      moment(date).utc().isSame(moment(lastStock.date), "day")
+    );
+    if (
+      !lastStock ||
+      moment(date).utc().isSame(moment(lastStock.date), "day")
+    ) {
+      if (lastStock?.type && lastStock.type !== "Currency") {
+        dollarValue = await fetchSymbolValueOnDate(
           symbol,
-          market,
-          type,
+          lastStock?.market || market,
+          lastStock.type,
           date
         );
-        if (symbolOnDate) {
-          symbolValue = {
-            value: symbolOnDate.value,
-            date: moment(symbolOnDate.date)
-              .tz("America/Argentina/Buenos_Aires")
-              .format(),
-            type,
-          };
-        }
-      } catch (error) {
-        const nearestValue = await prisma.item.findFirst({
-          where: {
-            OR: [
-              {
-                stock_symbol: symbol,
-                market,
-              },
-              {
-                bond_symbol: symbol,
-                market,
-              },
-              {
-                currency_symbol: symbol,
-                market,
-              },
-            ],
-            market,
-            date: {
-              lte: moment(date).toDate(),
+      }
+      if (!dollarValue) {
+        throw new Error("No dollar value found");
+      }
+      let data = {
+        type: "Stock",
+        Organization: {
+          connect: {
+            symbol,
+          },
+        },
+      };
+
+      const isBond = await prisma.bond.findFirst({
+        where: {
+          symbol,
+        },
+      });
+      if (isBond) {
+        data = {
+          type: "Bond",
+          Bond: {
+            connect: {
+              symbol,
             },
           },
-          orderBy: {
-            date: "desc",
-          },
-        });
-
-        if (!nearestValue) {
-          throw new Error("No value found");
-        }
-
-        symbolValue = {
-          value: nearestValue.value,
-          date: moment(nearestValue.date)
-            .tz("America/Argentina/Buenos_Aires")
-            .format(),
-          type: nearestValue.type,
         };
       }
-    }
 
-    return symbolValue;
+      const isCurrency = await prisma.currency.findFirst({
+        where: {
+          symbol,
+        },
+      });
+      if (isCurrency) {
+        const price = await fetchLastCurrencyValue(symbol);
+        data = {
+          type: "Currency",
+          value: price.value,
+          price_currency: "ARS",
+          Currency: {
+            connect: {
+              symbol,
+            },
+          },
+        };
+      }
+
+      lastStock = await prisma.item.create({
+        data: {
+          value: dollarValue.value,
+          date: moment().toDate(),
+          market,
+          ...data,
+        },
+      });
+      return {
+        value: dollarValue.value,
+        date: moment(lastStock.date)
+          .tz("America/Argentina/Buenos_Aires")
+          .format(),
+        type: lastStock.type,
+        organization: lastStock.Organization,
+        bond: lastStock.Bond,
+        currency: lastStock.Currency,
+        price_currency: lastStock?.price_currency || "USD",
+        symbol:
+          lastStock.stock_symbol ||
+          lastStock.bond_symbol ||
+          lastStock.currency_symbol,
+      };
+    }
   } catch (error) {
+    console.log(error);
     throw new Error(error.message || "Error fetching symbol value");
   }
 }
@@ -281,7 +425,6 @@ export async function getStockValueOnDateRange(
         },
         {
           currency_symbol: symbol,
-          market,
         },
       ],
       date: {
