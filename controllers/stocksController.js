@@ -311,12 +311,6 @@ export async function getStockValueOnDate(symbol, market = "NASDAQ", date) {
         .tz("America/Argentina/Buenos_Aires")
         .format(),
     };
-    // console.log("lastStock", lastStock);
-    console.log("INFO", date, lastStock.date);
-    console.log(
-      "IS SAME",
-      moment(date).utc().isSame(moment(lastStock.date), "day")
-    );
     if (
       !lastStock ||
       moment(date).utc().isSame(moment(lastStock.date), "day")
