@@ -136,11 +136,12 @@ export async function fetchSymbolPriceIOLOnDate(
         .format("YYYY-MM-DD")}/sinAjustar`
     );
     if (resp.data.length > 0 && resp.data[0].ultimoPrecio) {
+      const lote = resp?.data[0]?.lote || 1;
       if (resp.data[0].moneda === "peso_Argentino") {
         const { value: dollar } = await getDollarValueOnDate(date);
-        return { price: resp.data[0].ultimoPrecio / dollar };
+        return { price: resp.data[0].ultimoPrecio / dollar / lote };
       } else {
-        return { price: resp.data[0].ultimoPrecio };
+        return { price: resp.data[0].ultimoPrecio / lote };
       }
     } else {
       throw new Error("No se encontró precio");
