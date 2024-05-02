@@ -46,75 +46,84 @@ export async function getLastStockValue(symbol, market = "NASDAQ") {
     },
   });
 
-  let dollarValue = {
+  let lastValue = {
     value: lastStock?.value,
     date: moment(lastStock?.date).tz("America/Argentina/Buenos_Aires").format(),
   };
   if (!lastStock || !isToday(lastStock.date)) {
-    if (lastStock?.type && lastStock.type !== "Currency") {
-      dollarValue = await fetchLastStockValue(
-        symbol,
-        lastStock?.market || market
-      );
-    }
-    if (!dollarValue) {
-      throw new Error("No dollar value found");
-    }
-    let data = {
-      type: "Stock",
-      Organization: {
-        connect: {
+    try {
+      if (lastStock?.type && lastStock.type !== "Currency") {
+        lastValue = await fetchLastStockValue(
+          symbol,
+          lastStock?.market || market
+        );
+      }
+      if (!lastValue) {
+        throw new Error("No stock value found");
+      }
+      let data = {
+        type: "Stock",
+        Organization: {
+          connect: {
+            symbol,
+          },
+        },
+      };
+
+      const isBond = await prisma.bond.findFirst({
+        where: {
           symbol,
         },
-      },
-    };
-
-    const isBond = await prisma.bond.findFirst({
-      where: {
-        symbol,
-      },
-    });
-    if (isBond) {
-      data = {
-        type: "Bond",
-        Bond: {
-          connect: {
-            symbol,
+      });
+      if (isBond) {
+        data = {
+          type: "Bond",
+          Bond: {
+            connect: {
+              symbol,
+            },
           },
+        };
+      }
+
+      const isCurrency = await prisma.currency.findFirst({
+        where: {
+          symbol,
         },
+      });
+      if (isCurrency) {
+        const price = await fetchLastCurrencyValue(symbol);
+        data = {
+          type: "Currency",
+          value: price.value,
+          price_currency: "ARS",
+          Currency: {
+            connect: {
+              symbol,
+            },
+          },
+        };
+      }
+
+      lastStock = await prisma.item.create({
+        data: {
+          value: lastValue.value,
+          date: moment().toDate(),
+          market,
+          ...data,
+        },
+      });
+    } catch (error) {
+      lastValue = {
+        value: lastStock?.value,
+        date: moment(lastStock?.date)
+          .tz("America/Argentina/Buenos_Aires")
+          .format(),
       };
     }
-
-    const isCurrency = await prisma.currency.findFirst({
-      where: {
-        symbol,
-      },
-    });
-    if (isCurrency) {
-      const price = await fetchLastCurrencyValue(symbol);
-      data = {
-        type: "Currency",
-        value: price.value,
-        price_currency: "ARS",
-        Currency: {
-          connect: {
-            symbol,
-          },
-        },
-      };
-    }
-
-    lastStock = await prisma.item.create({
-      data: {
-        value: dollarValue.value,
-        date: moment().toDate(),
-        market,
-        ...data,
-      },
-    });
   }
   return {
-    value: dollarValue.value,
+    value: lastValue.value,
     date: moment(lastStock.date).tz("America/Argentina/Buenos_Aires").format(),
     type: lastStock.type,
     organization: lastStock.Organization,
@@ -140,6 +149,7 @@ export async function getCurrentMultiStockValue(symbols, markets) {
         }
       })
     );
+    console.log("STOCKS", stocksValue);
     return stocksValue;
   } catch (error) {
     throw new Error(error.message || "Error fetching symbol value");
