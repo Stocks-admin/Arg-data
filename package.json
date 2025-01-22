@@ -6,7 +6,7 @@
     "dev:generate": "npx prisma generate && nodemon -r dotenv/config ./app.js",
     "mock": "node ./mockData.dev.js",
     "updatePrices": "node ./update-prices.js",
-    "start": "node -r dotenv/config -r newrelic ./app.js"
+    "start": "npx prisma migrate deploy && node app.js"
   },
   "dependencies": {
     "@prisma/client": "^5.5.2",
