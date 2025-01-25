@@ -5,7 +5,7 @@ WORKDIR /usr/src/app
 RUN apk add --no-cache openssl
 
 COPY package*.json ./
-RUN npm install --only=production
+RUN npm install
 
 COPY . .
 
