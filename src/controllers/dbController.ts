@@ -27,7 +27,7 @@ const createCurrencies = async () => {
       data: {
         symbol: "USD",
         name: "Dolar",
-        country: {
+        Country: {
           connectOrCreate: {
             where: { name: "Estados Unidos" },
             create: { name: "Estados Unidos" },
@@ -39,7 +39,7 @@ const createCurrencies = async () => {
       data: {
         symbol: "ARS",
         name: "Peso Argentino",
-        country: {
+        Country: {
           connectOrCreate: {
             where: { name: "Argentina" },
             create: { name: "Argentina" },

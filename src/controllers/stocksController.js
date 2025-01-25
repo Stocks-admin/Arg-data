@@ -31,12 +31,12 @@ export async function getLastStockValue(symbol, market = "NASDAQ") {
     include: {
       Bond: {
         include: {
-          country: true,
+          Country: true,
         },
       },
       Currency: {
         include: {
-          country: true,
+          Country: true,
         },
       },
       Organization: true,
@@ -301,12 +301,12 @@ export async function getStockValueOnDate(symbol, market = "NASDAQ", date) {
       include: {
         Bond: {
           include: {
-            country: true,
+            Country: true,
           },
         },
         Currency: {
           include: {
-            country: true,
+            Country: true,
           },
         },
         Organization: true,
