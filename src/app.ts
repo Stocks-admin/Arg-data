@@ -19,9 +19,8 @@ const app = express();
 
 const corsOptions = {
   origin: [
-    "https://development.d2jiei2auzx96a.amplifyapp.com",
-    "https://production.d2jiei2auzx96a.amplifyapp.com",
-    "https://butterstocks.site",
+    "https://butterstocks.info",
+    "https://api.butterstocks.info",
     "http://localhost:3000",
     "http://localhost:3001",
   ],
