@@ -41,6 +41,7 @@ export async function loginToIOL() {
   return {
     access_token: logIn.data.access_token,
     refresh_token: logIn.data.refresh_token,
+    expires_at: moment().add(logIn.data.expires_in, "seconds").toDate(),
   };
 }
 

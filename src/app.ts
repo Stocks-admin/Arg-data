@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import bodyParser from "body-parser";
 import {
   fetchLastDolarValue,
@@ -13,6 +13,7 @@ import stocks from "./routes/stockRoutes.js";
 import { PrismaClient } from "@prisma/client";
 import cors from "cors";
 import { updateBonds } from "./controllers/stocksController.js";
+import { initializeDatabase } from "./controllers/dbController.js";
 
 const app = express();
 
@@ -59,6 +60,19 @@ app.get("/fetch-last-values", async (req, res) => {
   }
 });
 
+app.post("/initialize-database", async (req, res) => {
+  try {
+    await initializeDatabase();
+    res.send("Database initialized successfully");
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).send(error.message);
+    } else {
+      res.status(500).send("Error initializing database");
+    }
+  }
+});
+
 app.get("/generate-mock-dollars", async (req, res) => {
   const resp = await generateMockDollars();
   const resp2 = await generateMockMeli();
@@ -69,17 +83,19 @@ app.get("/generate-mock-dollars", async (req, res) => {
   }
 });
 
-app.get("/generate-symbols", async (req, res) => {
+app.get("/generate-symbols", async (req: Request, res: Response) => {
   const { market, instrumento } = req.query;
   try {
-    const resp = await loadAllSymbols(market, instrumento);
+    const resp = await loadAllSymbols(market as string, instrumento as string);
     if (resp) {
       res.send("Mock meli generated successfully");
     } else {
       res.status(500).send("Error generating mock meli");
     }
   } catch (error) {
-    res.status(500).send(error.message);
+    if (error instanceof Error) {
+      res.status(500).send(error.message);
+    }
   }
 });
 
@@ -93,7 +109,9 @@ app.get("/updateBonds", async (req, res) => {
     }
   } catch (error) {
     console.log(error);
-    res.status(500).send(error.message);
+    if (error instanceof Error) {
+      res.status(500).send(error.message);
+    }
   }
 });
 

@@ -66,7 +66,7 @@ model Organization {
 model Currency {
   symbol  String   @id
   name    String
-  country country? @relation(fields: [countryId], references: [id])
+  country Country? @relation(fields: [countryId], references: [id])
 
   Items     Item[]
   countryId Int?
@@ -74,7 +74,7 @@ model Currency {
 
 model Bond {
   symbol    String   @id
-  country   country? @relation(fields: [countryId], references: [id])
+  Country   Country? @relation(fields: [countryId], references: [id])
   batch     Int?     @default(100)
   items     Item[]
   countryId Int?
@@ -100,7 +100,7 @@ model iol_token {
   expires_at    DateTime
 }
 
-model country {
+model Country {
   id       Int        @id @default(autoincrement())
   name     String     @unique
   flag     String?

@@ -72,6 +72,7 @@ export async function fetchLastDolarValue() {
       throw new Error("Error fetching dollar value");
     }
   } catch (error) {
+    console.log(error);
     throw new Error("Error fetching dollar value");
   }
 }
