@@ -9,6 +9,8 @@ RUN npm install --only=production
 
 COPY . .
 
+RUN npm run build
+
 RUN npx prisma generate
 
 EXPOSE 5000
