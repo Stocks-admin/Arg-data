@@ -6,7 +6,7 @@ import {
   getDollarValueOnDate,
   getLastDollarValue,
 } from "../controllers/dollarController.js";
-import iolInstance from "../utils/IOLInterceptor.js";
+import iolInstance from "../utils/IOLInterceptor";
 
 const db = new PrismaClient();
 

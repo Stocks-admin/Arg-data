@@ -13,7 +13,7 @@ import stocks from "./routes/stockRoutes.js";
 import { PrismaClient } from "@prisma/client";
 import cors from "cors";
 import { updateBonds } from "./controllers/stocksController.js";
-import { initializeDatabase } from "./controllers/dbController.js";
+import { initializeDatabase } from "./controllers/dbController";
 
 const app = express();
 

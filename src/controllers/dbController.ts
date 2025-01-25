@@ -6,7 +6,7 @@ import {
   Prisma,
 } from "@prisma/client";
 import axios from "axios";
-import iolInstance from "../utils/IOLInterceptor.js";
+import iolInstance from "../utils/IOLInterceptor";
 
 const db = new PrismaClient();
 
